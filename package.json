@@ -1,0 +1,99 @@
+{
+    "name": "feature-rich-extension",
+    "displayName": "Feature Rich Extension",
+    "description": "Extension with free and premium features",
+    "version": "1.0.0",
+    "engines": {
+        "vscode": "^1.80.0"
+    },
+    "categories": [
+        "Other"
+    ],
+    "main": "./out/extension.js",
+    "contributes": {
+        "configuration": {
+            "title": "Feature Rich Extension",
+            "properties": {
+                "featureRich.highlightColors": {
+                    "type": "object",
+                    "default": {
+                        "brackets": "#FF9800",
+                        "keywords": "#2196F3"
+                    },
+                    "description": "Custom colors for syntax highlighting"
+                },
+                "featureRich.metrics.enabled": {
+                    "type": "boolean",
+                    "default": true,
+                    "description": "Enable code metrics"
+                }
+            }
+        },
+        "keybindings": [
+            {
+                "command": "extension.premiumFeature",
+                "key": "ctrl+shift+h",
+                "mac": "cmd+shift+h"
+            },
+            {
+                "command": "extension.premiumHighlightKeywords",
+                "key": "ctrl+shift+k",
+                "mac": "cmd+shift+k"
+            }
+        ],
+        "commands": [
+            {
+                "command": "extension.freeSample",
+                "title": "Free Sample Feature"
+            },
+            {
+                "command": "extension.premiumFeature",
+                "title": "Premium Feature"
+            },
+            {
+                "command": "extension.activateLicense",
+                "title": "Activate Premium License"
+            },
+            {
+                "command": "extension.deactivateLicense",
+                "title": "Deactivate Premium License"
+            },
+            {
+                "command": "extension.premiumHighlightKeywords",
+                "title": "Highlight Keywords (Premium)"
+            },
+            {
+                "command": "extension.premiumHighlightAll",
+                "title": "Highlight All (Premium)"
+            },
+            {
+                "command": "extension.showMetrics",
+                "title": "Show Code Metrics (Premium)"
+            },
+            {
+                "command": "extension.startTrial",
+                "title": "Start Free Trial"
+            },
+            {
+                "command": "extension.showMetricsChart",
+                "title": "Show Code Metrics Chart (Premium)"
+            }
+        ]
+    },
+    "dependencies": {
+        "axios": "^1.4.0",
+        "uuid": "^9.0.0",
+        "@vscode/extension-telemetry": "^0.7.0"
+    },
+    "scripts": {
+        "vscode:prepublish": "npm run compile",
+        "compile": "tsc -p ./",
+        "watch": "tsc -watch -p ./"
+    },
+    "devDependencies": {
+        "@types/node": "^16.0.0",
+        "@types/vscode": "^1.80.0",
+        "@types/uuid": "^9.0.2",
+        "typescript": "^5.1.6"
+    }
+}
