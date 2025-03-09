@@ -21,6 +21,10 @@ export class LicenseManager {
     private readonly STORE_ID = 157343;   // Your store's ID number
     private readonly PRODUCT_ID = 463516;  // Your product's ID number
 
+    // Add rate limiting protection
+    private lastValidationCheck: Date = new Date();
+    private readonly MIN_VALIDATION_INTERVAL = 5 * 60 * 1000; // 5 minutes
+
     /**
      * Sets up the license manager when it's first created
      * This is private because we only want one instance (singleton pattern)
@@ -76,6 +80,10 @@ export class LicenseManager {
      */
     private async validateLicenseKey(licenseKey: string): Promise<ValidationResponse> {
         try {
+            if (!licenseKey?.match(/^[a-zA-Z0-9-]+$/)) {
+                return { success: false, message: 'Invalid license key format.' };
+            }
+
             const response = await axios.post('https://api.lemonsqueezy.com/v1/licenses/validate',
                 `license_key=${licenseKey}`,
                 {
@@ -201,7 +209,14 @@ export class LicenseManager {
      * Validates the currently stored license
      * @returns Whether the license is valid
      */
-    async validateLicense(): Promise<boolean> {
+    public async validateLicense(): Promise<boolean> {
+        // Add rate limiting
+        const now = new Date();
+        if (now.getTime() - this.lastValidationCheck.getTime() < this.MIN_VALIDATION_INTERVAL) {
+            return this.isLicensed;
+        }
+        this.lastValidationCheck = now;
+
         const licenseKey = this.context.globalState.get('licenseKey');
         const instanceId = this.context.globalState.get('instanceId');
 
@@ -225,6 +240,7 @@ export class LicenseManager {
                 response.data.meta.product_id === this.PRODUCT_ID) {
                 this.isLicensed = true;
                 this.updateStatusBarItem();
+                await this.context.globalState.update('lastValidated', new Date().toISOString());
                 return true;
             }
 

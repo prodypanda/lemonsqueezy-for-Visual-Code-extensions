@@ -25,9 +25,18 @@ const PREMIUM_DECORATIONS = {
 function encodeBase64(text: string): Base64Result {
     try {
         const encoded = Buffer.from(text).toString('base64');
-        return { success: true, result: encoded };
+        return {
+            success: true,
+            result: encoded,
+            message: 'Text encoded successfully'
+        };
     } catch (error) {
-        return { success: false, result: '', error: 'Failed to encode text' };
+        return {
+            success: false,
+            result: '',
+            message: 'Failed to encode text',
+            error: 'Failed to encode text'
+        };
     }
 }
 
@@ -39,10 +48,30 @@ function encodeBase64(text: string): Base64Result {
 function decodeBase64(base64: string): Base64Result {
     try {
         const decoded = Buffer.from(base64, 'base64').toString('utf-8');
-        return { success: true, result: decoded };
+        return {
+            success: true,
+            result: decoded,
+            message: 'Text decoded successfully'
+        };
     } catch (error) {
-        return { success: false, result: '', error: 'Invalid base64 string' };
+        return {
+            success: false,
+            result: '',
+            message: 'Invalid base64 string',
+            error: 'Invalid base64 string'
+        };
     }
+}
+
+// Add command error handling wrapper
+function handleCommand(callback: () => Promise<void> | void): () => Promise<void> {
+    return async () => {
+        try {
+            await callback();
+        } catch (error) {
+            vscode.window.showErrorMessage(`Error: ${error instanceof Error ? error.message : 'Unknown error'}`);
+        }
+    };
 }
 
 /**
@@ -73,11 +102,14 @@ export async function activate(context: vscode.ExtensionContext) {
         // Command to activate a license
         {
             id: 'extension.activateLicense',
-            callback: async () => {
+            callback: handleCommand(async () => {
                 // Show input box for license key
                 const licenseKey = await vscode.window.showInputBox({
                     prompt: 'Enter your license key',
-                    placeHolder: 'xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx'
+                    placeHolder: 'xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx',
+                    validateInput: (value) => {
+                        return /^[a-zA-Z0-9-]+$/.test(value) ? null : 'Invalid license key format';
+                    }
                 });
 
                 // If they entered a key, try to activate it
@@ -89,35 +121,35 @@ export async function activate(context: vscode.ExtensionContext) {
                         vscode.window.showErrorMessage(result.message);
                     }
                 }
-            }
+            })
         },
         {
             id: 'extension.deactivateLicense',
-            callback: async () => {
+            callback: handleCommand(async () => {
                 const result = await licenseManager.deactivateLicense();
                 if (result.success) {
                     vscode.window.showInformationMessage(result.message);
                 } else {
                     vscode.window.showErrorMessage(result.message);
                 }
-            }
+            })
         },
         // Example free feature
         {
             id: 'extension.freeSample',
-            callback: () => {
+            callback: handleCommand(() => {
                 const editor = vscode.window.activeTextEditor;
                 if (editor) {
                     const text = editor.document.getText();
                     const wordCount = text.split(/\s+/).length;
                     vscode.window.showInformationMessage(`Word count: ${wordCount} (Free Feature)`);
                 }
-            }
+            })
         },
         // Example premium feature
         {
             id: 'extension.premiumFeature',
-            callback: () => {
+            callback: handleCommand(() => {
                 if (licenseManager.isFeatureAvailable()) {
                     const editor = vscode.window.activeTextEditor;
                     if (editor) {
@@ -138,11 +170,11 @@ export async function activate(context: vscode.ExtensionContext) {
                 } else {
                     vscode.window.showWarningMessage('Premium feature requires a license. Please activate your license.');
                 }
-            }
+            })
         },
         {
             id: 'extension.premiumHighlightKeywords',
-            callback: () => {
+            callback: handleCommand(() => {
                 if (!licenseManager.isFeatureAvailable()) {
                     vscode.window.showWarningMessage('Premium feature requires a license.');
                     return;
@@ -164,11 +196,11 @@ export async function activate(context: vscode.ExtensionContext) {
                     editor.setDecorations(PREMIUM_DECORATIONS.keywords, matches);
                     vscode.window.showInformationMessage('Keywords highlighted! (Premium Feature)');
                 }
-            }
+            })
         },
         {
             id: 'extension.encodeBase64',
-            callback: () => {
+            callback: handleCommand(() => {
                 if (!licenseManager.isFeatureAvailable()) {
                     vscode.window.showWarningMessage('Premium feature requires a license.');
                     return;
@@ -192,11 +224,11 @@ export async function activate(context: vscode.ExtensionContext) {
                         vscode.window.showErrorMessage(result.error || 'Encoding failed');
                     }
                 }
-            }
+            })
         },
         {
             id: 'extension.decodeBase64',
-            callback: () => {
+            callback: handleCommand(() => {
                 if (!licenseManager.isFeatureAvailable()) {
                     vscode.window.showWarningMessage('Premium feature requires a license.');
                     return;
@@ -220,7 +252,7 @@ export async function activate(context: vscode.ExtensionContext) {
                         vscode.window.showErrorMessage(result.error || 'Decoding failed');
                     }
                 }
-            }
+            })
         }
     ];
 

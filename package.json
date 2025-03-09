@@ -21,6 +21,14 @@
                         "keywords": "#2196F3"
                     },
                     "description": "Custom colors for syntax highlighting"
+                },
+                "featureRich.licenseValidation": {
+                    "type": "object",
+                    "default": {
+                        "checkInterval": 24,
+                        "showNotifications": true
+                    },
+                    "description": "License validation settings"
                 }
             }
         },

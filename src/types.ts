@@ -1,9 +1,12 @@
-// This interface defines what we get back when checking a license
-// Think of it like a receipt that tells us if everything worked
-export interface ValidationResponse {
-    success: boolean;      // Did it work? (true/false)
-    message: string;       // Message explaining what happened
-    data?: LemonSqueezyResponse;  // Extra details from LemonSqueezy (optional)
+// Base response interface for all API calls
+export interface BaseResponse {
+    success: boolean;
+    message: string;
+}
+
+// Response for license operations
+export interface ValidationResponse extends BaseResponse {
+    data?: LemonSqueezyResponse;
 }
 
 // Information about the store and product where the license was bought
@@ -44,16 +47,16 @@ export interface LemonSqueezyErrorResponse {
     status: number;
 }
 
-// Result of base64 encoding/decoding operations
-export interface Base64Result {
-    success: boolean;
+// Base64 operation result
+export interface Base64Result extends BaseResponse {
     result: string;
     error?: string;
 }
 
-// Current state of the license in the extension
+// License state with enhanced type safety
 export interface LicenseState {
     isLicensed: boolean;
     licenseKey: string | null;
     instanceId: string | null;
+    lastValidated?: string;  // ISO date string
 }
