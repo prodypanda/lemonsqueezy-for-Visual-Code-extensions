@@ -1,44 +1,43 @@
-# VS Code Extension Freemium Blueprint
+# VS Code Extension Freemium Blueprint with LemonSqueezy
 
-A ready-to-use template for creating Visual Studio Code extensions with freemium features using LemonSqueezy for license management.
+A production-ready template for creating VS Code extensions with freemium features using LemonSqueezy for license management.
 
-## 🎯 What is This?
+## 🎯 What This Blueprint Does
 
-This is a blueprint repository that helps you:
-1. Create VS Code extensions with both free and paid features
-2. Handle license management through LemonSqueezy
-3. Implement secure feature gating
-4. Manage premium user states
+- Provides a complete freemium extension structure
+- Handles all LemonSqueezy license API integration
+- Manages free vs premium feature gating
+- Includes working example features
 
-## 🚀 Quick Start
+## 🚀 How to Use This Blueprint
 
 1. Clone this repository
-2. Update LemonSqueezy credentials in `licenseManager.ts`:
+2. Set your LemonSqueezy credentials:
 ```typescript
-private readonly STORE_ID = YOUR_STORE_ID;   // From your LemonSqueezy store
-private readonly PRODUCT_ID = YOUR_PRODUCT_ID; // From your product page
+private readonly STORE_ID = YOUR_STORE_ID;    // From LemonSqueezy dashboard
+private readonly PRODUCT_ID = YOUR_PRODUCT_ID; // From your product settings
 ```
-3. Add your own features following the examples:
+3. Replace example features with your own:
 ```typescript
-// Free feature example
+// Free feature
 export function myFreeFeature() {
-    // Available to everyone
+    // Everyone can use this
 }
 
-// Premium feature example
+// Premium feature
 if (licenseManager.isFeatureAvailable()) {
-    // Only for paid users
+    // Only paid users can use this
 }
 ```
 
-## 💳 Payment Integration
+## 💳 LemonSqueezy Integration
 
-All payment and license handling is managed through LemonSqueezy API:
-- `/v1/licenses/validate` - Checks if a license is valid
-- `/v1/licenses/activate` - Activates license for current installation
-- `/v1/licenses/deactivate` - Removes license from current installation
+Already implemented endpoints:
+- `/v1/licenses/validate` - License validation
+- `/v1/licenses/activate` - License activation
+- `/v1/licenses/deactivate` - License deactivation
 
-No additional payment setup needed - just plug in your LemonSqueezy credentials.
+No additional setup needed - just add your credentials.
 
 ## 🏗️ Architecture
 

@@ -5,13 +5,8 @@ import { v4 as uuidv4 } from 'uuid';
 import { ValidationResponse, LicenseState, LicenseConfig, ExtensionError, ErrorTrackingConfig, ApiCache, CacheEntry, OfflineMode } from './types';
 
 /**
- * BLUEPRINT: License Manager for VS Code Extensions
- * 
- * How to use this blueprint:
- * 1. Replace STORE_ID and PRODUCT_ID with your LemonSqueezy values
- * 2. The license validation/activation/deactivation is already implemented
- * 3. Use isFeatureAvailable() to gate premium features
- * 4. All API calls to LemonSqueezy are pre-configured
+ * LemonSqueezy License Manager for VS Code Extensions
+ * Handles all license operations through LemonSqueezy's API
  */
 export class LicenseManager {
     // There can only be one LicenseManager (this is called a singleton pattern)
@@ -22,9 +17,16 @@ export class LicenseManager {
     private isLicensed: boolean = false;            // Is this a paid user?
     private statusBarItem: vscode.StatusBarItem;    // The button in VS Code's status bar
 
-    // Replace these with your LemonSqueezy credentials
-    private readonly STORE_ID = 157343;   // Your store's ID number
-    private readonly PRODUCT_ID = 463516;  // Your product's ID number
+    // API endpoints from LemonSqueezy
+    private readonly API = {
+        validate: 'https://api.lemonsqueezy.com/v1/licenses/validate',
+        activate: 'https://api.lemonsqueezy.com/v1/licenses/activate',
+        deactivate: 'https://api.lemonsqueezy.com/v1/licenses/deactivate'
+    };
+
+    // Replace with your LemonSqueezy credentials
+    private readonly STORE_ID = 157343;   // Your store ID
+    private readonly PRODUCT_ID = 463516;  // Your product ID
 
     // Add rate limiting protection
     private lastValidationCheck: Date = new Date();
@@ -199,32 +201,25 @@ export class LicenseManager {
                 return { success: false, message: 'Invalid license key format.' };
             }
 
-            const response = await axios.post('https://api.lemonsqueezy.com/v1/licenses/validate',
-                `license_key=${licenseKey}`,
-                {
-                    headers: {
-                        'Accept': 'application/json',
-                        'Content-Type': 'application/x-www-form-urlencoded'
-                    }
-                }
-            );
+            const response = await this.makeApiRequest(this.API.validate,
+                `license_key=${licenseKey}`);
 
-            if (!response.data.valid) {
+            if (!response.valid) {
                 return { success: false, message: 'Invalid license key.' };
             }
 
-            if (response.data.meta.store_id !== this.STORE_ID) {
+            if (response.meta.store_id !== this.STORE_ID) {
                 return { success: false, message: 'This license key belongs to a different store.' };
             }
 
-            if (response.data.meta.product_id !== this.PRODUCT_ID) {
+            if (response.meta.product_id !== this.PRODUCT_ID) {
                 return { success: false, message: 'This license key is for a different product.' };
             }
 
             return {
                 success: true,
                 message: 'License key is valid.',
-                data: response.data
+                data: response
             };
         } catch (error) {
             return this.handleAxiosError(error);
@@ -526,6 +521,29 @@ export class LicenseManager {
             expiry: Date.now() + duration
         };
         this.context.globalState.update('apiCache', this.apiCache);
+    }
+
+    /**
+     * Make API request with proper headers and error handling
+     */
+    private async makeApiRequest(endpoint: string, data: any): Promise<any> {
+        try {
+            const response = await axios.post(endpoint, data, {
+                headers: {
+                    'Accept': 'application/json',
+                    'Content-Type': 'application/x-www-form-urlencoded'
+                }
+            });
+            return response.data;
+        } catch (error) {
+            if (axios.isAxiosError(error)) {
+                if (error.response?.status === 429) {
+                    throw new Error('Rate limit exceeded. Please try again later.');
+                }
+                throw new Error(error.response?.data?.error || error.message);
+            }
+            throw error;
+        }
     }
 
     public dispose(): void {
