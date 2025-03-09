@@ -249,40 +249,76 @@ export class LicenseManager {
      * Like activating a product key for software
      */
     async activateLicense(licenseKey: string): Promise<ValidationResponse> {
-        // First validate the license key
-        const validationResult = await this.validateLicenseKey(licenseKey);
-        if (!validationResult.success) {
-            return validationResult;
-        }
-
         try {
-            const instanceName = `vscode-${uuidv4()}`;
-            const response = await this.makeApiRequest(this.API.activate,
-                `license_key=${licenseKey}&instance_name=${instanceName}`);
-
-            if (!response.activated) {
+            // Better license key validation
+            if (!licenseKey?.match(/^[a-zA-Z0-9-]{36}$/)) {
                 return {
                     success: false,
-                    message: response.error || 'Failed to activate license.'
+                    message: 'Invalid license key format. Expected format: XXXXXXXX-XXXX-XXXX-XXXX-XXXXXXXXXXXX'
                 };
             }
 
-            // Store license data
-            await this.context.globalState.update('licenseKey', licenseKey);
-            await this.context.globalState.update('instanceId', response.instance?.id);
-            await this.context.globalState.update('lastValidated', new Date().toISOString());
-            await this.context.globalState.update('validUntil', response.license_key?.expires_at);
+            // First validate the license key
+            const validationResult = await this.validateLicenseKey(licenseKey);
+            if (!validationResult.success) {
+                return validationResult;
+            }
 
-            this.isLicensed = true;
-            this.updateStatusBarItem();
+            const instanceName = `vscode-${uuidv4()}`;
 
-            return {
-                success: true,
-                message: 'License activated successfully!',
-                data: response
-            };
+            // Add more detailed error handling for the API request
+            try {
+                const response = await this.makeApiRequest(this.API.activate,
+                    `license_key=${encodeURIComponent(licenseKey)}&instance_name=${encodeURIComponent(instanceName)}`);
+
+                if (!response) {
+                    throw new Error('No response from activation endpoint');
+                }
+
+                if (response.error) {
+                    return {
+                        success: false,
+                        message: `Activation failed: ${response.error}`,
+                        error: response.error
+                    };
+                }
+
+                if (!response.activated) {
+                    return {
+                        success: false,
+                        message: 'License activation failed. Please try again.'
+                    };
+                }
+
+                // Store license data
+                await this.context.globalState.update('licenseKey', licenseKey);
+                await this.context.globalState.update('instanceId', response.instance?.id);
+                await this.context.globalState.update('lastValidated', new Date().toISOString());
+                await this.context.globalState.update('validUntil', response.license_key?.expires_at);
+
+                this.isLicensed = true;
+                this.updateStatusBarItem();
+
+                return {
+                    success: true,
+                    message: 'License activated successfully!',
+                    data: response
+                };
+            } catch (error) {
+                console.error('License activation error:', error);
+                return {
+                    success: false,
+                    message: error instanceof Error ? error.message : 'Failed to activate license',
+                    error: error instanceof Error ? error.message : 'Unknown error'
+                };
+            }
         } catch (error) {
-            return this.handleAxiosError(error);
+            console.error('Activation wrapper error:', error);
+            return {
+                success: false,
+                message: 'An unexpected error occurred during activation',
+                error: error instanceof Error ? error.message : 'Unknown error'
+            };
         }
     }
 
@@ -542,21 +578,65 @@ export class LicenseManager {
      */
     private async makeApiRequest(endpoint: string, data: any): Promise<any> {
         try {
+            console.log(`Making API request to ${endpoint}`);
             const response = await axios.post(endpoint, data, {
                 headers: {
                     'Accept': 'application/json',
                     'Content-Type': 'application/x-www-form-urlencoded'
-                }
+                },
+                timeout: 10000 // 10 second timeout
             });
+
+            console.log('API Response:', response.data);
+
+            // Handle specific error cases from the API response
+            if (response.data.error) {
+                if (response.data.error.includes('activation limit')) {
+                    throw new Error('This license key has reached the activation limit.');
+                }
+                throw new Error(response.data.error);
+            }
+
+            // Handle product/store mismatch
+            if (endpoint.includes('/validate') || endpoint.includes('/activate')) {
+                const { meta } = response.data;
+                if (meta) {
+                    if (meta.store_id !== this.STORE_ID) {
+                        throw new Error('This license key belongs to a different store.');
+                    }
+                    if (meta.product_id !== this.PRODUCT_ID) {
+                        throw new Error('This license key is for a different product.');
+                    }
+                }
+            }
+
+            // Handle invalid license keys
+            if (response.data.valid === false) {
+                throw new Error('Invalid license key. Please check and try again.');
+            }
+
             return response.data;
         } catch (error) {
+            console.error('API Request Error:', error);
+
             if (axios.isAxiosError(error)) {
+                // Network or server errors
                 if (error.response?.status === 429) {
                     throw new Error('Rate limit exceeded. Please try again later.');
                 }
-                throw new Error(error.response?.data?.error || error.message);
+                if (error.response?.data?.error) {
+                    throw new Error(error.response.data.error);
+                }
+                if (error.response?.status === 404) {
+                    throw new Error('Invalid license key. Please check and try again.');
+                }
+                throw new Error(error.message);
             }
-            throw error;
+            // Re-throw application errors with specific messages
+            if (error instanceof Error) {
+                throw error;
+            }
+            throw new Error('An unexpected error occurred while processing your request.');
         }
     }
 

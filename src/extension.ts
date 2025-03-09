@@ -149,28 +149,48 @@ export async function activate(context: vscode.ExtensionContext) {
         {
             id: 'extension.activateLicense',
             callback: async () => {
-                const licenseKey = await vscode.window.showInputBox({
-                    prompt: 'Enter your license key from LemonSqueezy',
-                    placeHolder: 'XXXXXXXX-XXXX-XXXX-XXXX-XXXXXXXXXXXX',
-                    validateInput: (value) => {
-                        return /^[a-zA-Z0-9-]+$/.test(value) ? null : 'Invalid license key format';
-                    }
-                });
+                try {
+                    const licenseKey = await vscode.window.showInputBox({
+                        prompt: 'Enter your license key from LemonSqueezy',
+                        placeHolder: 'XXXXXXXX-XXXX-XXXX-XXXX-XXXXXXXXXXXX',
+                        validateInput: (value) => {
+                            return /^[a-zA-Z0-9-]{36}$/.test(value)
+                                ? null
+                                : 'Invalid license key format. Must be in format: XXXXXXXX-XXXX-XXXX-XXXX-XXXXXXXXXXXX';
+                        }
+                    });
 
-                if (!licenseKey) return;
-
-                vscode.window.withProgress({
-                    location: vscode.ProgressLocation.Notification,
-                    title: 'Activating license...',
-                    cancellable: false
-                }, async () => {
-                    const result = await licenseManager.activateLicense(licenseKey);
-                    if (result.success) {
-                        vscode.window.showInformationMessage(result.message);
-                    } else {
-                        vscode.window.showErrorMessage(result.message);
+                    if (!licenseKey) {
+                        return; // User cancelled
                     }
-                });
+
+                    await vscode.window.withProgress({
+                        location: vscode.ProgressLocation.Notification,
+                        title: 'Activating license...',
+                        cancellable: false
+                    }, async (progress) => {
+                        try {
+                            progress.report({ message: 'Validating license key...' });
+                            const result = await licenseManager.activateLicense(licenseKey);
+
+                            if (result.success) {
+                                vscode.window.showInformationMessage(result.message);
+                            } else {
+                                vscode.window.showErrorMessage(result.message || 'License activation failed');
+                            }
+                        } catch (error) {
+                            console.error('License activation error:', error);
+                            vscode.window.showErrorMessage(
+                                `License activation failed: ${error instanceof Error ? error.message : 'Unknown error'}`
+                            );
+                        }
+                    });
+                } catch (error) {
+                    console.error('Command error:', error);
+                    vscode.window.showErrorMessage(
+                        `An error occurred: ${error instanceof Error ? error.message : 'Unknown error'}`
+                    );
+                }
             }
         },
         {
