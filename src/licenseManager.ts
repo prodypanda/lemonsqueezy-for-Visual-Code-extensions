@@ -25,6 +25,10 @@ export class LicenseManager {
     private lastValidationCheck: Date = new Date();
     private readonly MIN_VALIDATION_INTERVAL = 5 * 60 * 1000; // 5 minutes
 
+    private retryAttempts = 0;
+    private readonly MAX_RETRIES = 3;
+    private readonly RETRY_DELAY = 5000; // 5 seconds
+
     /**
      * Sets up the license manager when it's first created
      * This is private because we only want one instance (singleton pattern)
@@ -210,46 +214,48 @@ export class LicenseManager {
      * @returns Whether the license is valid
      */
     public async validateLicense(): Promise<boolean> {
-        // Add rate limiting
-        const now = new Date();
-        if (now.getTime() - this.lastValidationCheck.getTime() < this.MIN_VALIDATION_INTERVAL) {
-            return this.isLicensed;
-        }
-        this.lastValidationCheck = now;
+        return this.withRetry(async () => {
+            // Add rate limiting
+            const now = new Date();
+            if (now.getTime() - this.lastValidationCheck.getTime() < this.MIN_VALIDATION_INTERVAL) {
+                return this.isLicensed;
+            }
+            this.lastValidationCheck = now;
 
-        const licenseKey = this.context.globalState.get('licenseKey');
-        const instanceId = this.context.globalState.get('instanceId');
+            const licenseKey = this.context.globalState.get('licenseKey');
+            const instanceId = this.context.globalState.get('instanceId');
 
-        if (!licenseKey || !instanceId) {
-            return false;
-        }
-
-        try {
-            const response = await axios.post('https://api.lemonsqueezy.com/v1/licenses/validate',
-                `license_key=${licenseKey}&instance_id=${instanceId}`,
-                {
-                    headers: {
-                        'Accept': 'application/json',
-                        'Content-Type': 'application/x-www-form-urlencoded'
-                    }
-                }
-            );
-
-            if (response.data.valid &&
-                response.data.meta.store_id === this.STORE_ID &&
-                response.data.meta.product_id === this.PRODUCT_ID) {
-                this.isLicensed = true;
-                this.updateStatusBarItem();
-                await this.context.globalState.update('lastValidated', new Date().toISOString());
-                return true;
+            if (!licenseKey || !instanceId) {
+                return false;
             }
 
-            this.isLicensed = false;
-            this.updateStatusBarItem();
-            return false;
-        } catch (error) {
-            return false;
-        }
+            try {
+                const response = await axios.post('https://api.lemonsqueezy.com/v1/licenses/validate',
+                    `license_key=${licenseKey}&instance_id=${instanceId}`,
+                    {
+                        headers: {
+                            'Accept': 'application/json',
+                            'Content-Type': 'application/x-www-form-urlencoded'
+                        }
+                    }
+                );
+
+                if (response.data.valid &&
+                    response.data.meta.store_id === this.STORE_ID &&
+                    response.data.meta.product_id === this.PRODUCT_ID) {
+                    this.isLicensed = true;
+                    this.updateStatusBarItem();
+                    await this.context.globalState.update('lastValidated', new Date().toISOString());
+                    return true;
+                }
+
+                this.isLicensed = false;
+                this.updateStatusBarItem();
+                return false;
+            } catch (error) {
+                return false;
+            }
+        });
     }
 
     /**
@@ -340,9 +346,28 @@ export class LicenseManager {
      */
     getLicenseState(): LicenseState {
         return {
+            success: true,  // Add required BaseResponse property
+            message: 'License state retrieved successfully',  // Add required BaseResponse property
             isLicensed: this.isLicensed,
             licenseKey: this.context.globalState.get('licenseKey') || null,
-            instanceId: this.context.globalState.get('instanceId') || null
+            instanceId: this.context.globalState.get('instanceId') || null,
+            lastValidated: this.context.globalState.get('lastValidated'),
+            lastValidationSuccess: this.isLicensed,
+            retryCount: this.retryAttempts
         };
+    }
+
+    // Add retry mechanism
+    private async withRetry<T>(operation: () => Promise<T>): Promise<T> {
+        for (let i = 0; i < this.MAX_RETRIES; i++) {
+            try {
+                return await operation();
+            } catch (error) {
+                this.retryAttempts++;
+                if (i === this.MAX_RETRIES - 1) throw error;
+                await new Promise(resolve => setTimeout(resolve, this.RETRY_DELAY));
+            }
+        }
+        throw new Error('Max retries reached');
     }
 }

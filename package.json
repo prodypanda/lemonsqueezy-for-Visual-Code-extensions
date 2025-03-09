@@ -47,6 +47,16 @@
                             "type": "boolean",
                             "default": true,
                             "description": "Retry failed license validations"
+                        },
+                        "maxRetries": {
+                            "type": "number",
+                            "default": 3,
+                            "description": "Maximum number of retry attempts for failed operations"
+                        },
+                        "retryDelay": {
+                            "type": "number",
+                            "default": 5000,
+                            "description": "Delay between retry attempts (milliseconds)"
                         }
                     }
                 }

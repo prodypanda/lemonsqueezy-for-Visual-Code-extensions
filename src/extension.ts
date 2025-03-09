@@ -86,6 +86,20 @@ function handleCommand(callback: () => Promise<void> | void): () => Promise<void
     };
 }
 
+// Enhanced command error handling
+async function handleCommandWithRetry<T>(
+    operation: () => Promise<T>,
+    errorMessage: string
+): Promise<T | undefined> {
+    try {
+        return await operation();
+    } catch (error) {
+        console.error(error);
+        vscode.window.showErrorMessage(`${errorMessage}: ${error instanceof Error ? error.message : 'Unknown error'}`);
+        return undefined;
+    }
+}
+
 /**
  * Extension Activation
  * This is where you register your commands and initialize the license system
@@ -114,28 +128,31 @@ export async function activate(context: vscode.ExtensionContext) {
         // Command to activate a license
         {
             id: 'extension.activateLicense',
-            callback: handleCommand(async () => {
-                // Show input box for license key
-                const licenseKey = await vscode.window.showInputBox({
-                    prompt: 'Enter your license key',
-                    placeHolder: 'xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx',
-                    validateInput: (value) => {
-                        if (!value) return 'License key cannot be empty';
-                        if (!/^[a-zA-Z0-9-]+$/.test(value)) return 'Invalid license key format';
-                        return null;
-                    }
-                });
+            callback: () => handleCommandWithRetry(
+                async () => {
+                    // Show input box for license key
+                    const licenseKey = await vscode.window.showInputBox({
+                        prompt: 'Enter your license key',
+                        placeHolder: 'xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx',
+                        validateInput: (value) => {
+                            if (!value) return 'License key cannot be empty';
+                            if (!/^[a-zA-Z0-9-]+$/.test(value)) return 'Invalid license key format';
+                            return null;
+                        }
+                    });
 
-                // If they entered a key, try to activate it
-                if (licenseKey) {
-                    const result = await licenseManager.activateLicense(licenseKey);
-                    if (result.success) {
-                        vscode.window.showInformationMessage(result.message);
-                    } else {
-                        vscode.window.showErrorMessage(result.message);
+                    // If they entered a key, try to activate it
+                    if (licenseKey) {
+                        const result = await licenseManager.activateLicense(licenseKey);
+                        if (result.success) {
+                            vscode.window.showInformationMessage(result.message);
+                        } else {
+                            vscode.window.showErrorMessage(result.message);
+                        }
                     }
-                }
-            })
+                },
+                'Failed to activate license'
+            )
         },
         {
             id: 'extension.deactivateLicense',
