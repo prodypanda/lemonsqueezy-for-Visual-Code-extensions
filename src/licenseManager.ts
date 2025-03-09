@@ -1,23 +1,31 @@
+// Import required packages and types
 import axios from 'axios';
 import * as vscode from 'vscode';
 import { v4 as uuidv4 } from 'uuid';
 import { ValidationResponse, LicenseState } from './types';
 
+/**
+ * Main class that handles all license-related features
+ * This is like a manager that keeps track of whether someone has paid or is using a trial
+ */
 export class LicenseManager {
+    // There can only be one LicenseManager (this is called a singleton pattern)
     private static instance: LicenseManager;
-    private context: vscode.ExtensionContext;
-    private isLicensed: boolean = false;
-    private statusBarItem: vscode.StatusBarItem;
 
-    // Hardcoded values for security
-    private readonly STORE_ID = 157343; // Replace with your store ID
-    private readonly PRODUCT_ID = 463516; // Replace with your product ID
-    private readonly TRIAL_PERIOD_DAYS = 14;
-    private trialStartDate: Date | null = null;
+    // Store important information we need
+    private context: vscode.ExtensionContext;        // VS Code's storage system
+    private isLicensed: boolean = false;            // Is this a paid user?
+    private statusBarItem: vscode.StatusBarItem;    // The button in VS Code's status bar
+
+    // These values are from your LemonSqueezy account
+    private readonly STORE_ID = 157343;   // Your store's ID number
+    private readonly PRODUCT_ID = 463516;  // Your product's ID number
+    private readonly TRIAL_PERIOD_DAYS = 14;  // How long the trial lasts
+    private trialStartDate: Date | null = null;  // When did they start the trial?
 
     /**
-     * Private constructor for singleton pattern
-     * @param context The extension context
+     * Sets up the license manager when it's first created
+     * This is private because we only want one instance (singleton pattern)
      */
     private constructor(context: vscode.ExtensionContext) {
         this.context = context;
@@ -50,22 +58,8 @@ export class LicenseManager {
     }
 
     /**
-     * Ensures the status bar item remains visible
-     */
-    private ensureStatusBarVisibility(): void {
-        if (this.statusBarItem) {
-            this.statusBarItem.show();
-            // Force a small delay to ensure visibility
-            setTimeout(() => {
-                this.statusBarItem.show();
-            }, 100);
-        }
-    }
-
-    /**
-     * Gets or creates the singleton instance of LicenseManager
-     * @param context The extension context
-     * @returns The LicenseManager instance
+     * Get the one and only instance of LicenseManager
+     * This is how other parts of the code access the license manager
      */
     static getInstance(context: vscode.ExtensionContext): LicenseManager {
         if (!LicenseManager.instance) {
@@ -75,9 +69,14 @@ export class LicenseManager {
     }
 
     /**
-     * Validates a license key with the LemonSqueezy API
-     * @param licenseKey The license key to validate 
-     * @returns Validation response
+     * Checks if a license key is valid with LemonSqueezy
+     * 
+     * Steps:
+     * 1. Sends the key to LemonSqueezy
+     * 2. Checks if it's a valid key
+     * 3. Makes sure it's for our store and product
+     * 
+     * Like checking if a gift card is real and for our store
      */
     private async validateLicenseKey(licenseKey: string): Promise<ValidationResponse> {
         try {
@@ -114,9 +113,15 @@ export class LicenseManager {
     }
 
     /**
-     * Activates a license key for this instance
-     * @param licenseKey The license key to activate
-     * @returns Activation response
+     * Activates a license key for this installation
+     * 
+     * Steps:
+     * 1. First checks if the key is valid
+     * 2. Creates a unique ID for this installation
+     * 3. Tells LemonSqueezy we're using the license
+     * 4. Saves the license info locally
+     * 
+     * Like activating a product key for software
      */
     async activateLicense(licenseKey: string): Promise<ValidationResponse> {
         // First validate the license key
@@ -150,6 +155,54 @@ export class LicenseManager {
             return { success: false, message: 'License activation failed.' };
         } catch (error) {
             return this.handleAxiosError(error);
+        }
+    }
+
+    /**
+     * Updates the button in VS Code's status bar
+     * Shows if you're using free/trial/premium version
+     * 
+     * States:
+     * - Free: Basic version
+     * - Trial: Using premium features temporarily
+     * - Premium: Paid version with all features
+     */
+    public updateStatusBarItem(): void {
+        if (!this.statusBarItem) {
+            return;
+        }
+
+        if (this.isLicensed) {
+            this.statusBarItem.text = "$(verified) Premium";
+            this.statusBarItem.backgroundColor = new vscode.ThemeColor('statusBarItem.prominentBackground');
+        } else if (this.isTrialValid()) {
+            const days = this.getRemainingTrialDays();
+            this.statusBarItem.text = `$(clock) Trial (${days}d)`;
+            this.statusBarItem.backgroundColor = undefined;
+        } else {
+            this.statusBarItem.text = "$(star) Free";
+            this.statusBarItem.backgroundColor = undefined;
+        }
+
+        this.statusBarItem.command = 'extension.activateLicense';
+        this.statusBarItem.tooltip = this.isLicensed ?
+            "Premium features activated" :
+            "Click to activate premium features";
+
+        this.ensureStatusBarVisibility();
+    }
+
+    /**
+     * Makes sure the status bar button stays visible
+     * Sometimes VS Code needs a little extra help showing our button
+     */
+    private ensureStatusBarVisibility(): void {
+        if (this.statusBarItem) {
+            this.statusBarItem.show();
+            // Force a small delay to ensure visibility
+            setTimeout(() => {
+                this.statusBarItem.show();
+            }, 100);
         }
     }
 
@@ -229,34 +282,6 @@ export class LicenseManager {
     }
 
     /**
-     * Updates the status bar item's appearance
-     */
-    public updateStatusBarItem(): void {
-        if (!this.statusBarItem) {
-            return;
-        }
-
-        if (this.isLicensed) {
-            this.statusBarItem.text = "$(verified) Premium";
-            this.statusBarItem.backgroundColor = new vscode.ThemeColor('statusBarItem.prominentBackground');
-        } else if (this.isTrialValid()) {
-            const days = this.getRemainingTrialDays();
-            this.statusBarItem.text = `$(clock) Trial (${days}d)`;
-            this.statusBarItem.backgroundColor = undefined;
-        } else {
-            this.statusBarItem.text = "$(star) Free";
-            this.statusBarItem.backgroundColor = undefined;
-        }
-
-        this.statusBarItem.command = 'extension.activateLicense';
-        this.statusBarItem.tooltip = this.isLicensed ?
-            "Premium features activated" :
-            "Click to activate premium features";
-
-        this.ensureStatusBarVisibility();
-    }
-
-    /**
      * Checks if the trial period is still valid
      */
     private isTrialValid(): boolean {
@@ -311,7 +336,8 @@ export class LicenseManager {
     }
 
     /**
-     * Starts periodic license validation
+     * Starts checking the license regularly
+     * Makes sure people can't keep using premium features if their license expires
      */
     startPeriodicValidation(): void {
         setInterval(async () => {
@@ -322,9 +348,8 @@ export class LicenseManager {
     }
 
     /**
-     * Handles Axios errors in a consistent way
-     * @param error The error to handle
-     * @returns Formatted error response
+     * Handles any errors that happen when talking to LemonSqueezy
+     * Makes error messages more user-friendly
      */
     private async handleAxiosError(error: any): Promise<ValidationResponse> {
         if (axios.isAxiosError(error)) {

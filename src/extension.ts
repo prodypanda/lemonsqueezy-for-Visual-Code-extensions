@@ -1,12 +1,17 @@
+// Import required VS Code functionality and our custom code
 import * as vscode from 'vscode';
 import { LicenseManager } from './licenseManager';
 import { CodeMetrics } from './types';
 
+// Define how special text should look (for premium features)
+// These are used to highlight code in different colors
 const PREMIUM_DECORATIONS = {
+    // Bracket highlighting style (orange color)
     brackets: vscode.window.createTextEditorDecorationType({
         color: '#FF9800',
         fontWeight: 'bold'
     }),
+    // Keyword highlighting style (blue color)
     keywords: vscode.window.createTextEditorDecorationType({
         color: '#2196F3',
         fontWeight: 'bold'
@@ -14,9 +19,14 @@ const PREMIUM_DECORATIONS = {
 };
 
 /**
- * Calculates various code metrics for the given text
- * @param text The source code text to analyze
- * @returns CodeMetrics object containing various code measurements
+ * Analyzes code and calculates different metrics
+ * 
+ * What it does:
+ * 1. Counts lines, words, and characters
+ * 2. Finds number of functions and classes
+ * 3. Calculates code complexity
+ * 
+ * Used by: Premium feature to show code statistics
  */
 function calculateMetrics(text: string): CodeMetrics {
     const lines = text.split('\n');
@@ -37,9 +47,14 @@ function calculateMetrics(text: string): CodeMetrics {
 }
 
 /**
- * Calculates code complexity based on control flow statements
- * @param text The source code text to analyze
- * @returns Numerical complexity score
+ * Figures out how complex the code is
+ * 
+ * What it does:
+ * 1. Counts control flow statements (if, while, for, switch)
+ * 2. Counts return statements
+ * 3. Adds them together for a complexity score
+ * 
+ * Higher score = more complex code
  */
 function calculateComplexity(text: string): number {
     const conditionals = (text.match(/if|while|for|switch/g) || []).length;
@@ -48,9 +63,14 @@ function calculateComplexity(text: string): number {
 }
 
 /**
- * Generates an HTML chart visualization of code metrics
- * @param metrics The metrics to visualize
- * @returns HTML string containing the chart
+ * Creates a visual chart showing code metrics
+ * 
+ * What it does:
+ * 1. Creates an HTML page with Chart.js
+ * 2. Shows bar chart and pie chart of metrics
+ * 3. Makes the charts interactive
+ * 
+ * Used by: Premium feature to visualize code metrics
  */
 function generateMetricsChart(metrics: { lines: number, chars: number, words: number, functions: number, classes: number, complexity: number }) {
     return `
@@ -89,13 +109,20 @@ function generateMetricsChart(metrics: { lines: number, chars: number, words: nu
 }
 
 /**
- * Extension activation handler
- * @param context The extension context
+ * Main function that starts our extension
+ * This runs when someone activates our extension in VS Code
+ * 
+ * Steps:
+ * 1. Start license checking system
+ * 2. Set up all our commands
+ * 3. Create status bar button
+ * 4. Set up trial system
  */
 export async function activate(context: vscode.ExtensionContext) {
+    // Create our license manager (handles free/premium features)
     const licenseManager = LicenseManager.getInstance(context);
 
-    // Ensure immediate visibility
+    // Make sure our status bar button shows up
     setTimeout(async () => {
         await licenseManager.validateLicense();
         licenseManager.updateStatusBarItem();
@@ -104,15 +131,19 @@ export async function activate(context: vscode.ExtensionContext) {
     licenseManager.startPeriodicValidation();
     licenseManager.updateStatusBarItem();
 
+    // List of all commands our extension provides
     const commands = [
+        // Command to activate a license
         {
             id: 'extension.activateLicense',
             callback: async () => {
+                // Show input box for license key
                 const licenseKey = await vscode.window.showInputBox({
                     prompt: 'Enter your license key',
                     placeHolder: 'xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx'
                 });
 
+                // If they entered a key, try to activate it
                 if (licenseKey) {
                     const result = await licenseManager.activateLicense(licenseKey);
                     if (result.success) {
@@ -221,14 +252,14 @@ export async function activate(context: vscode.ExtensionContext) {
         }
     ];
 
-    // Register all commands
+    // Register all our commands with VS Code
     commands.forEach(command => {
         context.subscriptions.push(
             vscode.commands.registerCommand(command.id, command.callback)
         );
     });
 
-    // Add trial command
+    // Add command to start free trial
     context.subscriptions.push(
         vscode.commands.registerCommand('extension.startTrial', async () => {
             await licenseManager.startTrial();
@@ -262,10 +293,10 @@ export async function activate(context: vscode.ExtensionContext) {
 }
 
 /**
- * Extension deactivation handler
- * Cleans up resources when the extension is deactivated
+ * Clean up function that runs when our extension is disabled
+ * Makes sure we don't leave any mess behind
  */
 export function deactivate() {
-    // Clean up decorations
+    // Remove any special text highlighting we added
     Object.values(PREMIUM_DECORATIONS).forEach(decoration => decoration.dispose());
 }
