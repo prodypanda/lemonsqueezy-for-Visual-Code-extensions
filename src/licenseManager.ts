@@ -70,7 +70,7 @@ export class LicenseManager {
      * Steps:
      * 1. Sends the key to LemonSqueezy
      * 2. Checks if it's a valid key
-     * 3. Makes sure it's for our store and product
+     * 3. Makes sure it's for our store and ccorrect product
      * 
      * Like checking if a gift card is real and for our store
      */
@@ -156,7 +156,7 @@ export class LicenseManager {
 
     /**
      * Updates the button in VS Code's status bar
-     * Shows if you're using free/trial/premium version
+     * Shows if you're using free/premium version
      * 
      * States:
      * - Free: Basic version

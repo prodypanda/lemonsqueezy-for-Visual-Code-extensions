@@ -1,7 +1,7 @@
 // Import required VS Code functionality and our custom code
 import * as vscode from 'vscode';
 import { LicenseManager } from './licenseManager';
-import { CodeMetrics } from './types';
+import { Base64Result } from './types';
 
 // Define how special text should look (for premium features)
 // These are used to highlight code in different colors
@@ -19,93 +19,29 @@ const PREMIUM_DECORATIONS = {
 };
 
 /**
- * Analyzes code and calculates different metrics
- * 
- * What it does:
- * 1. Counts lines, words, and characters
- * 2. Finds number of functions and classes
- * 3. Calculates code complexity
- * 
- * Used by: Premium feature to show code statistics
+ * Encodes text to base64
+ * @param text Text to encode
  */
-function calculateMetrics(text: string): CodeMetrics {
-    const lines = text.split('\n');
-    const chars = text.length;
-    const words = text.split(/\s+/).length;
-    const functions = (text.match(/function\s+\w+/g) || []).length;
-    const classes = (text.match(/class\s+\w+/g) || []).length;
-    const complexity = calculateComplexity(text);
-
-    return {
-        lines: lines.length,
-        chars,
-        words,
-        functions,
-        classes,
-        complexity
-    };
+function encodeBase64(text: string): Base64Result {
+    try {
+        const encoded = Buffer.from(text).toString('base64');
+        return { success: true, result: encoded };
+    } catch (error) {
+        return { success: false, result: '', error: 'Failed to encode text' };
+    }
 }
 
 /**
- * Figures out how complex the code is
- * 
- * What it does:
- * 1. Counts control flow statements (if, while, for, switch)
- * 2. Counts return statements
- * 3. Adds them together for a complexity score
- * 
- * Higher score = more complex code
+ * Decodes base64 to text
+ * @param base64 Base64 string to decode
  */
-function calculateComplexity(text: string): number {
-    const conditionals = (text.match(/if|while|for|switch/g) || []).length;
-    const returns = (text.match(/return/g) || []).length;
-    return conditionals + returns;
-}
-
-/**
- * Creates a visual chart showing code metrics
- * 
- * What it does:
- * 1. Creates an HTML page with Chart.js
- * 2. Shows bar chart and pie chart of metrics
- * 3. Makes the charts interactive
- * 
- * Used by: Premium feature to visualize code metrics
- */
-function generateMetricsChart(metrics: { lines: number, chars: number, words: number, functions: number, classes: number, complexity: number }) {
-    return `
-        <html>
-        <head>
-            <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-        </head>
-        <body>
-            <canvas id="metricsChart" width="400" height="400"></canvas>
-            <script>
-                const ctx = document.getElementById('metricsChart').getContext('2d');
-                const chart = new Chart(ctx, {
-                    type: 'bar',
-                    data: {
-                        labels: ['Lines', 'Characters', 'Words', 'Functions', 'Classes', 'Complexity'],
-                        datasets: [{
-                            label: 'Code Metrics',
-                            data: [${metrics.lines}, ${metrics.chars}, ${metrics.words}, ${metrics.functions}, ${metrics.classes}, ${metrics.complexity}],
-                            backgroundColor: 'rgba(75, 192, 192, 0.2)',
-                            borderColor: 'rgba(75, 192, 192, 1)',
-                            borderWidth: 1
-                        }]
-                    },
-                    options: {
-                        scales: {
-                            y: {
-                                beginAtZero: true
-                            }
-                        }
-                    }
-                });
-            </script>
-        </body>
-        </html>
-    `;
+function decodeBase64(base64: string): Base64Result {
+    try {
+        const decoded = Buffer.from(base64, 'base64').toString('utf-8');
+        return { success: true, result: decoded };
+    } catch (error) {
+        return { success: false, result: '', error: 'Invalid base64 string' };
+    }
 }
 
 /**
@@ -228,7 +164,7 @@ export async function activate(context: vscode.ExtensionContext) {
             }
         },
         {
-            id: 'extension.showMetrics',
+            id: 'extension.encodeBase64',
             callback: () => {
                 if (!licenseManager.isFeatureAvailable()) {
                     vscode.window.showWarningMessage('Premium feature requires a license.');
@@ -237,16 +173,49 @@ export async function activate(context: vscode.ExtensionContext) {
 
                 const editor = vscode.window.activeTextEditor;
                 if (editor) {
-                    const metrics = calculateMetrics(editor.document.getText());
-                    vscode.window.showInformationMessage(
-                        `Code Metrics (Premium):\n` +
-                        `Lines: ${metrics.lines}\n` +
-                        `Characters: ${metrics.chars}\n` +
-                        `Words: ${metrics.words}\n` +
-                        `Functions: ${metrics.functions}\n` +
-                        `Classes: ${metrics.classes}\n` +
-                        `Complexity: ${metrics.complexity}`
-                    );
+                    const selection = editor.selection;
+                    const text = editor.document.getText(selection);
+                    if (!text) {
+                        vscode.window.showWarningMessage('Please select text to encode');
+                        return;
+                    }
+
+                    const result = encodeBase64(text);
+                    if (result.success) {
+                        editor.edit(editBuilder => {
+                            editBuilder.replace(selection, result.result);
+                        });
+                    } else {
+                        vscode.window.showErrorMessage(result.error || 'Encoding failed');
+                    }
+                }
+            }
+        },
+        {
+            id: 'extension.decodeBase64',
+            callback: () => {
+                if (!licenseManager.isFeatureAvailable()) {
+                    vscode.window.showWarningMessage('Premium feature requires a license.');
+                    return;
+                }
+
+                const editor = vscode.window.activeTextEditor;
+                if (editor) {
+                    const selection = editor.selection;
+                    const text = editor.document.getText(selection);
+                    if (!text) {
+                        vscode.window.showWarningMessage('Please select text to decode');
+                        return;
+                    }
+
+                    const result = decodeBase64(text);
+                    if (result.success) {
+                        editor.edit(editBuilder => {
+                            editBuilder.replace(selection, result.result);
+                        });
+                    } else {
+                        vscode.window.showErrorMessage(result.error || 'Decoding failed');
+                    }
                 }
             }
         }
@@ -258,29 +227,6 @@ export async function activate(context: vscode.ExtensionContext) {
             vscode.commands.registerCommand(command.id, command.callback)
         );
     });
-
-    // Enhance metrics visualization
-    context.subscriptions.push(
-        vscode.commands.registerCommand('extension.showMetricsChart', () => {
-            if (!licenseManager.isFeatureAvailable()) {
-                vscode.window.showWarningMessage('Premium feature requires a license.');
-                return;
-            }
-
-            const editor = vscode.window.activeTextEditor;
-            if (editor) {
-                const metrics = calculateMetrics(editor.document.getText());
-                const panel = vscode.window.createWebviewPanel(
-                    'metricsChart',
-                    'Code Metrics Chart',
-                    vscode.ViewColumn.One,
-                    { enableScripts: true }
-                );
-
-                panel.webview.html = generateMetricsChart(metrics);
-            }
-        })
-    );
 }
 
 /**

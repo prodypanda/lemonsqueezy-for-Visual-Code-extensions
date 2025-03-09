@@ -44,19 +44,14 @@ export interface LemonSqueezyErrorResponse {
     status: number;
 }
 
-// Stores various statistics about the code being analyzed
-// Used by the premium metrics feature
-export interface CodeMetrics {
-    lines: number;
-    chars: number;
-    words: number;
-    functions: number;
-    classes: number;
-    complexity: number;
+// Result of base64 encoding/decoding operations
+export interface Base64Result {
+    success: boolean;
+    result: string;
+    error?: string;
 }
 
 // Current state of the license in the extension
-// Used to track if premium features are available
 export interface LicenseState {
     isLicensed: boolean;
     licenseKey: string | null;

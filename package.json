@@ -21,26 +21,9 @@
                         "keywords": "#2196F3"
                     },
                     "description": "Custom colors for syntax highlighting"
-                },
-                "featureRich.metrics.enabled": {
-                    "type": "boolean",
-                    "default": true,
-                    "description": "Enable code metrics"
                 }
             }
         },
-        "keybindings": [
-            {
-                "command": "extension.premiumFeature",
-                "key": "ctrl+shift+h",
-                "mac": "cmd+shift+h"
-            },
-            {
-                "command": "extension.premiumHighlightKeywords",
-                "key": "ctrl+shift+k",
-                "mac": "cmd+shift+k"
-            }
-        ],
         "commands": [
             {
                 "command": "extension.freeSample",
@@ -67,12 +50,12 @@
                 "title": "Highlight All (Premium)"
             },
             {
-                "command": "extension.showMetrics",
-                "title": "Show Code Metrics (Premium)"
+                "command": "extension.encodeBase64",
+                "title": "Encode to Base64 (Premium)"
             },
             {
-                "command": "extension.showMetricsChart",
-                "title": "Show Code Metrics Chart (Premium)"
+                "command": "extension.decodeBase64",
+                "title": "Decode from Base64 (Premium)"
             }
         ]
     },

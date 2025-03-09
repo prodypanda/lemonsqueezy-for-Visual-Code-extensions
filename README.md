@@ -9,18 +9,14 @@ A powerful Visual Studio Code extension that offers both free and premium featur
 - **Basic Status Bar**: Shows the current license status (Free/Trial/Premium)
 
 ### Premium Features
+- **Base64 Encoding/Decoding**
+  - Convert text to base64
+  - Convert base64 back to text
+  - Works with selected text
 - **Smart Syntax Highlighting**
   - Bracket highlighting with custom colors
   - Keyword highlighting for important programming terms
   - Customizable highlighting colors
-
-- **Code Metrics**
-  - Line count
-  - Character count
-  - Function count
-  - Class count
-  - Code complexity analysis
-  - Interactive metrics visualization with charts
 
 ## Getting Started
 
@@ -40,13 +36,12 @@ A powerful Visual Studio Code extension that offers both free and premium featur
 | Command | Description | Availability |
 |---------|-------------|--------------|
 | `Free Sample Feature` | Show document word count | Free |
-| `Start Free Trial` | Begin 14-day trial period | Free |
 | `Activate Premium License` | Activate your premium license | Free |
 | `Deactivate Premium License` | Deactivate current license | Premium |
 | `Premium Feature` | Highlight brackets | Premium |
 | `Highlight Keywords` | Highlight programming keywords | Premium |
-| `Show Code Metrics` | Display code analysis | Premium |
-| `Show Code Metrics Chart` | Show interactive metrics visualization | Premium |
+| `Encode to Base64` | Convert text to base64 | Premium |
+| `Decode from Base64` | Convert base64 to text | Premium |
 
 ## Extension Settings
 
@@ -59,7 +54,6 @@ This extension contributes the following settings:
     "keywords": "#2196F3"
   }
   ```
-- `featureRich.metrics.enabled`: Enable/disable code metrics analysis
 
 ## Keyboard Shortcuts
 
