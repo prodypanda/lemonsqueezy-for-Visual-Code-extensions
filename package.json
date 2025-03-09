@@ -72,6 +72,36 @@
                                     "description": "Days to keep error history"
                                 }
                             }
+                        },
+                        "offlineMode": {
+                            "type": "object",
+                            "properties": {
+                                "enabled": {
+                                    "type": "boolean",
+                                    "default": true,
+                                    "description": "Enable offline mode support"
+                                },
+                                "cacheDuration": {
+                                    "type": "number",
+                                    "default": 72,
+                                    "description": "How long to cache license state offline (hours)"
+                                }
+                            }
+                        },
+                        "apiCache": {
+                            "type": "object",
+                            "properties": {
+                                "enabled": {
+                                    "type": "boolean",
+                                    "default": true,
+                                    "description": "Enable API response caching"
+                                },
+                                "duration": {
+                                    "type": "number",
+                                    "default": 30,
+                                    "description": "How long to cache API responses (minutes)"
+                                }
+                            }
                         }
                     }
                 }

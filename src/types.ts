@@ -29,6 +29,15 @@ export interface LicenseConfig {
     errorTracking: ErrorTrackingConfig;
     offlineTolerance: number;  // hours
     validateOnStartup: boolean;
+    offlineMode: {
+        enabled: boolean;
+        cacheDuration: number;  // hours
+        maxRetries: number;
+    };
+    apiCache: {
+        enabled: boolean;
+        duration: number;  // minutes
+    };
 }
 
 // Extend base response for specific responses
@@ -91,4 +100,23 @@ export interface LicenseState extends BaseResponse {
     retryCount: number;
     config: LicenseConfig;
     validUntil?: string;
+}
+
+// Add cache support
+export interface CacheEntry<T> {
+    data: T;
+    timestamp: number;
+    expiry: number;
+}
+
+export interface ApiCache {
+    validations: { [key: string]: CacheEntry<LemonSqueezyResponse> };
+    activations: { [key: string]: CacheEntry<LemonSqueezyResponse> };
+}
+
+// Add offline mode types
+export interface OfflineMode {
+    enabled: boolean;
+    lastOnlineCheck: string;
+    cachedLicenseState: LicenseState;
 }

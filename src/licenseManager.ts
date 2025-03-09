@@ -2,7 +2,7 @@
 import axios from 'axios';
 import * as vscode from 'vscode';
 import { v4 as uuidv4 } from 'uuid';
-import { ValidationResponse, LicenseState, LicenseConfig, ExtensionError, ErrorTrackingConfig } from './types';
+import { ValidationResponse, LicenseState, LicenseConfig, ExtensionError, ErrorTrackingConfig, ApiCache, CacheEntry, OfflineMode } from './types';
 
 /**
  * BLUEPRINT: License Manager for VS Code Extensions
@@ -45,8 +45,18 @@ export class LicenseManager {
             retainFailedAttempts: false
         },
         offlineTolerance: 72,
-        validateOnStartup: true
+        validateOnStartup: true,
+        offlineMode: {
+            enabled: true,
+            cacheDuration: 72,
+            maxRetries: 3
+        },
+        apiCache: {
+            enabled: true,
+            duration: 30
+        }
     };
+
     private validationErrors: ExtensionError[] = [];
     private cleanupInterval: NodeJS.Timer | null = null;
     private readonly DEFAULT_CONFIG: LicenseConfig = {
@@ -60,7 +70,31 @@ export class LicenseManager {
             retainFailedAttempts: false
         },
         offlineTolerance: 72,
-        validateOnStartup: true
+        validateOnStartup: true,
+        offlineMode: {
+            enabled: true,
+            cacheDuration: 72,
+            maxRetries: 3
+        },
+        apiCache: {
+            enabled: true,
+            duration: 30
+        }
+    };
+
+    private apiCache: ApiCache = { validations: {}, activations: {} };
+    private offlineMode: OfflineMode = {
+        enabled: false,
+        lastOnlineCheck: new Date().toISOString(),
+        cachedLicenseState: {
+            success: true,
+            message: 'Initial offline state',
+            isLicensed: false,
+            licenseKey: null,
+            instanceId: null,
+            retryCount: 0,
+            config: this.DEFAULT_CONFIG
+        }
     };
 
     /**
@@ -96,6 +130,7 @@ export class LicenseManager {
         context.subscriptions.push(this.statusBarItem);
 
         this.startErrorCleanup();
+        this.initializeCache();
     }
 
     private startErrorCleanup(): void {
@@ -290,6 +325,11 @@ export class LicenseManager {
      * @returns Whether the license is valid
      */
     public async validateLicense(): Promise<boolean> {
+        // Check offline mode first
+        if (this.offlineMode.enabled) {
+            return this.handleOfflineValidation();
+        }
+
         return this.withRetry(async () => {
             // Add rate limiting
             const now = new Date();
@@ -332,6 +372,13 @@ export class LicenseManager {
                 return false;
             }
         });
+    }
+
+    private async handleOfflineValidation(): Promise<boolean> {
+        if (!this.offlineMode.cachedLicenseState) return false;
+        const offlineExpiry = new Date(this.offlineMode.lastOnlineCheck);
+        offlineExpiry.setHours(offlineExpiry.getHours() + this.config.offlineMode.cacheDuration);
+        return Date.now() < offlineExpiry.getTime() && this.offlineMode.cachedLicenseState.isLicensed;
     }
 
     /**
@@ -454,6 +501,31 @@ export class LicenseManager {
             }
         }
         throw new Error('Max retries reached');
+    }
+
+    private async initializeCache(): Promise<void> {
+        this.apiCache = await this.context.globalState.get('apiCache') || { validations: {}, activations: {} };
+        this.offlineMode = await this.context.globalState.get('offlineMode') || this.offlineMode;
+    }
+
+    private getCachedResponse<T>(cache: { [key: string]: CacheEntry<T> }, key: string): T | null {
+        const entry = cache[key];
+        if (!entry) return null;
+        if (Date.now() > entry.expiry) {
+            delete cache[key];
+            return null;
+        }
+        return entry.data;
+    }
+
+    private setCachedResponse<T>(cache: { [key: string]: CacheEntry<T> }, key: string, data: T): void {
+        const duration = this.config.apiCache.duration * 60 * 1000;
+        cache[key] = {
+            data,
+            timestamp: Date.now(),
+            expiry: Date.now() + duration
+        };
+        this.context.globalState.update('apiCache', this.apiCache);
     }
 
     public dispose(): void {
