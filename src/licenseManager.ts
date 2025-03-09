@@ -15,17 +15,58 @@ export class LicenseManager {
     private readonly TRIAL_PERIOD_DAYS = 14;
     private trialStartDate: Date | null = null;
 
+    /**
+     * Private constructor for singleton pattern
+     * @param context The extension context
+     */
     private constructor(context: vscode.ExtensionContext) {
         this.context = context;
-        this.statusBarItem = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Right, 100);
-        this.updateStatusBarItem();
-        this.statusBarItem.show();
-        context.subscriptions.push(this.statusBarItem);
 
+        // Create status bar with highest priority
+        this.statusBarItem = vscode.window.createStatusBarItem(
+            vscode.StatusBarAlignment.Right,
+            100000  // Very high priority to ensure visibility
+        );
+
+        // Load saved states
         const savedDate = this.context.globalState.get<string>('trialStartDate');
         this.trialStartDate = savedDate ? new Date(savedDate) : null;
+        const licenseKey = this.context.globalState.get('licenseKey');
+        this.isLicensed = !!licenseKey;
+
+        // Initialize status bar immediately
+        this.updateStatusBarItem();
+        this.ensureStatusBarVisibility();
+
+        // Register window state change listener
+        context.subscriptions.push(
+            vscode.window.onDidChangeWindowState(() => {
+                this.ensureStatusBarVisibility();
+            })
+        );
+
+        // Ensure status bar is disposed properly
+        context.subscriptions.push(this.statusBarItem);
     }
 
+    /**
+     * Ensures the status bar item remains visible
+     */
+    private ensureStatusBarVisibility(): void {
+        if (this.statusBarItem) {
+            this.statusBarItem.show();
+            // Force a small delay to ensure visibility
+            setTimeout(() => {
+                this.statusBarItem.show();
+            }, 100);
+        }
+    }
+
+    /**
+     * Gets or creates the singleton instance of LicenseManager
+     * @param context The extension context
+     * @returns The LicenseManager instance
+     */
     static getInstance(context: vscode.ExtensionContext): LicenseManager {
         if (!LicenseManager.instance) {
             LicenseManager.instance = new LicenseManager(context);
@@ -33,6 +74,11 @@ export class LicenseManager {
         return LicenseManager.instance;
     }
 
+    /**
+     * Validates a license key with the LemonSqueezy API
+     * @param licenseKey The license key to validate 
+     * @returns Validation response
+     */
     private async validateLicenseKey(licenseKey: string): Promise<ValidationResponse> {
         try {
             const response = await axios.post('https://api.lemonsqueezy.com/v1/licenses/validate',
@@ -67,6 +113,11 @@ export class LicenseManager {
         }
     }
 
+    /**
+     * Activates a license key for this instance
+     * @param licenseKey The license key to activate
+     * @returns Activation response
+     */
     async activateLicense(licenseKey: string): Promise<ValidationResponse> {
         // First validate the license key
         const validationResult = await this.validateLicenseKey(licenseKey);
@@ -102,6 +153,10 @@ export class LicenseManager {
         }
     }
 
+    /**
+     * Validates the currently stored license
+     * @returns Whether the license is valid
+     */
     async validateLicense(): Promise<boolean> {
         const licenseKey = this.context.globalState.get('licenseKey');
         const instanceId = this.context.globalState.get('instanceId');
@@ -137,6 +192,10 @@ export class LicenseManager {
         }
     }
 
+    /**
+     * Deactivates the current license
+     * @returns Deactivation response
+     */
     async deactivateLicense(): Promise<ValidationResponse> {
         const licenseKey = this.context.globalState.get('licenseKey');
         const instanceId = this.context.globalState.get('instanceId');
@@ -169,26 +228,37 @@ export class LicenseManager {
         }
     }
 
-    private updateStatusBarItem(): void {
+    /**
+     * Updates the status bar item's appearance
+     */
+    public updateStatusBarItem(): void {
+        if (!this.statusBarItem) {
+            return;
+        }
+
         if (this.isLicensed) {
             this.statusBarItem.text = "$(verified) Premium";
+            this.statusBarItem.backgroundColor = new vscode.ThemeColor('statusBarItem.prominentBackground');
         } else if (this.isTrialValid()) {
             const days = this.getRemainingTrialDays();
             this.statusBarItem.text = `$(clock) Trial (${days}d)`;
+            this.statusBarItem.backgroundColor = undefined;
         } else {
             this.statusBarItem.text = "$(star) Free";
+            this.statusBarItem.backgroundColor = undefined;
         }
-        this.statusBarItem.tooltip = this.isLicensed ? "Click to access premium features" : "Click to activate premium features";
-        this.statusBarItem.command = this.isLicensed ? {
-            title: 'Open Premium Features',
-            command: 'workbench.action.quickOpen',
-            arguments: ['>Premium:']
-        } : 'extension.activateLicense';
-        this.statusBarItem.backgroundColor = this.isLicensed ?
-            new vscode.ThemeColor('statusBarItem.prominentBackground') :
-            undefined;
+
+        this.statusBarItem.command = 'extension.activateLicense';
+        this.statusBarItem.tooltip = this.isLicensed ?
+            "Premium features activated" :
+            "Click to activate premium features";
+
+        this.ensureStatusBarVisibility();
     }
 
+    /**
+     * Checks if the trial period is still valid
+     */
     private isTrialValid(): boolean {
         if (!this.trialStartDate) return false;
         const trialEnd = new Date(this.trialStartDate);
@@ -196,6 +266,9 @@ export class LicenseManager {
         return new Date() < trialEnd;
     }
 
+    /**
+     * Starts the trial period
+     */
     async startTrial(): Promise<void> {
         if (!this.trialStartDate) {
             this.trialStartDate = new Date();
@@ -203,6 +276,10 @@ export class LicenseManager {
         }
     }
 
+    /**
+     * Gets the remaining days in the trial period
+     * @returns Number of days remaining
+     */
     getRemainingTrialDays(): number {
         if (!this.trialStartDate) return 0;
         const trialEnd = new Date(this.trialStartDate);
@@ -211,10 +288,19 @@ export class LicenseManager {
         return Math.max(0, remaining);
     }
 
+    /**
+     * Checks if premium features are available
+     * @returns Whether premium features can be accessed
+     */
     isFeatureAvailable(): boolean {
         return this.isLicensed || this.isTrialValid();
     }
 
+    /**
+     * Checks the subscription status of a license
+     * @param licenseKey The license key to check
+     * @returns Whether the subscription is active
+     */
     private async checkSubscriptionStatus(licenseKey: string): Promise<boolean> {
         try {
             const response = await axios.get(`https://api.lemonsqueezy.com/v1/licenses/${licenseKey}/status`);
@@ -224,6 +310,9 @@ export class LicenseManager {
         }
     }
 
+    /**
+     * Starts periodic license validation
+     */
     startPeriodicValidation(): void {
         setInterval(async () => {
             if (this.isLicensed) {
@@ -232,6 +321,11 @@ export class LicenseManager {
         }, 24 * 60 * 60 * 1000); // Check every 24 hours
     }
 
+    /**
+     * Handles Axios errors in a consistent way
+     * @param error The error to handle
+     * @returns Formatted error response
+     */
     private async handleAxiosError(error: any): Promise<ValidationResponse> {
         if (axios.isAxiosError(error)) {
             const message = error.response?.data?.error || error.message;
@@ -240,6 +334,10 @@ export class LicenseManager {
         return { success: false, message: 'An unexpected error occurred' };
     }
 
+    /**
+     * Gets the current license state
+     * @returns Current license state
+     */
     getLicenseState(): LicenseState {
         return {
             isLicensed: this.isLicensed,

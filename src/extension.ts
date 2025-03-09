@@ -17,6 +17,10 @@ const PREMIUM_DECORATIONS = {
     })
 };
 
+/**
+ * Sends telemetry events to VSCode's telemetry service
+ * @param event The telemetry event to send
+ */
 const sendTelemetry = (event: TelemetryEvent) => {
     if (reporter) {
         // Convert all properties to strings to match VSCode's requirements
@@ -29,6 +33,11 @@ const sendTelemetry = (event: TelemetryEvent) => {
     }
 };
 
+/**
+ * Calculates various code metrics for the given text
+ * @param text The source code text to analyze
+ * @returns CodeMetrics object containing various code measurements
+ */
 function calculateMetrics(text: string): CodeMetrics {
     const lines = text.split('\n');
     const chars = text.length;
@@ -47,12 +56,22 @@ function calculateMetrics(text: string): CodeMetrics {
     };
 }
 
+/**
+ * Calculates code complexity based on control flow statements
+ * @param text The source code text to analyze
+ * @returns Numerical complexity score
+ */
 function calculateComplexity(text: string): number {
     const conditionals = (text.match(/if|while|for|switch/g) || []).length;
     const returns = (text.match(/return/g) || []).length;
     return conditionals + returns;
 }
 
+/**
+ * Generates an HTML chart visualization of code metrics
+ * @param metrics The metrics to visualize
+ * @returns HTML string containing the chart
+ */
 function generateMetricsChart(metrics: { lines: number, chars: number, words: number, functions: number, classes: number, complexity: number }) {
     return `
         <html>
@@ -89,14 +108,28 @@ function generateMetricsChart(metrics: { lines: number, chars: number, words: nu
     `;
 }
 
-export function activate(context: vscode.ExtensionContext) {
-    reporter = new TelemetryReporter(TELEMETRY_KEY);
-    context.subscriptions.push(reporter);
-
+/**
+ * Extension activation handler
+ * @param context The extension context
+ */
+export async function activate(context: vscode.ExtensionContext) {
+    // Initialize license manager first and await its validation
     const licenseManager = LicenseManager.getInstance(context);
 
-    // Validate existing license on startup
-    licenseManager.validateLicense();
+    // Ensure immediate visibility
+    setTimeout(async () => {
+        await licenseManager.validateLicense();
+        licenseManager.updateStatusBarItem();
+    }, 500);
+
+    // Start periodic validation after initial check
+    licenseManager.startPeriodicValidation();
+
+    // Ensure status bar item is updated on startup
+    licenseManager.updateStatusBarItem();
+
+    reporter = new TelemetryReporter(TELEMETRY_KEY);
+    context.subscriptions.push(reporter);
 
     const commands = [
         {
@@ -263,6 +296,10 @@ export function activate(context: vscode.ExtensionContext) {
     );
 }
 
+/**
+ * Extension deactivation handler
+ * Cleans up resources when the extension is deactivated
+ */
 export function deactivate() {
     // Clean up decorations
     Object.values(PREMIUM_DECORATIONS).forEach(decoration => decoration.dispose());

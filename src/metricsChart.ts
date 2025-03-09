@@ -1,5 +1,10 @@
 import { CodeMetrics } from './types';
 
+/**
+ * Generates an interactive HTML chart showing code metrics
+ * @param metrics The code metrics to visualize
+ * @returns HTML string containing the interactive chart
+ */
 export function generateMetricsChart(metrics: CodeMetrics): string {
     return `
         <!DOCTYPE html>
