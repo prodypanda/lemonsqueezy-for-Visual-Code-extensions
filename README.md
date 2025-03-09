@@ -85,15 +85,6 @@ This extension contributes the following settings:
 - Regular feature updates
 - Support ongoing development
 
-## Privacy and Data Collection
-
-This extension collects anonymous usage data to improve the user experience. Data collected includes:
-- Feature usage statistics
-- Error reports
-- License validation attempts
-
-No personal information is collected. You can opt-out through VS Code's telemetry settings.
-
 ## Known Issues
 
 See our [GitHub issues page](https://github.com/yourusername/feature-rich-extension/issues) for current issues and feature requests.

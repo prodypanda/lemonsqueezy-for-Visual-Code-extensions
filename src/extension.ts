@@ -1,10 +1,6 @@
 import * as vscode from 'vscode';
 import { LicenseManager } from './licenseManager';
-import TelemetryReporter from '@vscode/extension-telemetry';
-import { CodeMetrics, TelemetryEvent } from './types';
-
-const TELEMETRY_KEY = 'your-key-here';
-let reporter: TelemetryReporter;
+import { CodeMetrics } from './types';
 
 const PREMIUM_DECORATIONS = {
     brackets: vscode.window.createTextEditorDecorationType({
@@ -15,22 +11,6 @@ const PREMIUM_DECORATIONS = {
         color: '#2196F3',
         fontWeight: 'bold'
     })
-};
-
-/**
- * Sends telemetry events to VSCode's telemetry service
- * @param event The telemetry event to send
- */
-const sendTelemetry = (event: TelemetryEvent) => {
-    if (reporter) {
-        // Convert all properties to strings to match VSCode's requirements
-        const properties = event.properties ?
-            Object.fromEntries(
-                Object.entries(event.properties).map(([k, v]) => [k, String(v)])
-            ) : undefined;
-
-        reporter.sendTelemetryEvent(event.name, properties);
-    }
 };
 
 /**
@@ -113,7 +93,6 @@ function generateMetricsChart(metrics: { lines: number, chars: number, words: nu
  * @param context The extension context
  */
 export async function activate(context: vscode.ExtensionContext) {
-    // Initialize license manager first and await its validation
     const licenseManager = LicenseManager.getInstance(context);
 
     // Ensure immediate visibility
@@ -122,14 +101,8 @@ export async function activate(context: vscode.ExtensionContext) {
         licenseManager.updateStatusBarItem();
     }, 500);
 
-    // Start periodic validation after initial check
     licenseManager.startPeriodicValidation();
-
-    // Ensure status bar item is updated on startup
     licenseManager.updateStatusBarItem();
-
-    reporter = new TelemetryReporter(TELEMETRY_KEY);
-    context.subscriptions.push(reporter);
 
     const commands = [
         {
@@ -261,7 +234,6 @@ export async function activate(context: vscode.ExtensionContext) {
             await licenseManager.startTrial();
             const days = licenseManager.getRemainingTrialDays();
             vscode.window.showInformationMessage(`Trial started! ${days} days remaining`);
-            reporter.sendTelemetryEvent('trialStarted');
         })
     );
 
@@ -284,13 +256,6 @@ export async function activate(context: vscode.ExtensionContext) {
                 );
 
                 panel.webview.html = generateMetricsChart(metrics);
-                sendTelemetry({
-                    name: 'metricsViewed',
-                    properties: {
-                        lines: String(metrics.lines),
-                        complexity: String(metrics.complexity)
-                    }
-                });
             }
         })
     );

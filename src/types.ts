@@ -44,11 +44,6 @@ export interface CodeMetrics {
     complexity: number;
 }
 
-export interface TelemetryEvent {
-    name: string;
-    properties?: { [key: string]: string }; // Changed to match VSCode's TelemetryEventProperties
-}
-
 export interface LicenseState {
     isLicensed: boolean;
     trialStartDate: string | null;
