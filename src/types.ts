@@ -4,11 +4,21 @@ export interface BaseResponse {
     message: string;
 }
 
-// Add error handling
+// Enhanced error handling
 export interface ExtensionError {
     code: string;
     message: string;
     details?: any;
+    timestamp?: string;
+    retryable?: boolean;
+}
+
+// License validation config
+export interface LicenseConfig {
+    maxRetries: number;
+    retryDelay: number;
+    validationInterval: number;
+    showNotifications: boolean;
 }
 
 // Extend base response for specific responses
@@ -60,7 +70,7 @@ export interface LemonSqueezyErrorResponse {
     status: number;
 }
 
-// Enhanced license state with validation tracking
+// Enhanced license state with better tracking
 export interface LicenseState extends BaseResponse {
     isLicensed: boolean;
     licenseKey: string | null;
@@ -68,5 +78,7 @@ export interface LicenseState extends BaseResponse {
     lastValidated?: string;  // ISO date string
     lastValidationSuccess?: boolean;
     validationErrors?: ExtensionError[];
-    retryCount?: number;
+    retryCount: number;
+    config: LicenseConfig;
+    validUntil?: string;
 }

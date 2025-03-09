@@ -2,7 +2,7 @@
 import axios from 'axios';
 import * as vscode from 'vscode';
 import { v4 as uuidv4 } from 'uuid';
-import { ValidationResponse, LicenseState } from './types';
+import { ValidationResponse, LicenseState, LicenseConfig, ExtensionError } from './types';
 
 /**
  * Main class that handles all license-related features
@@ -29,12 +29,21 @@ export class LicenseManager {
     private readonly MAX_RETRIES = 3;
     private readonly RETRY_DELAY = 5000; // 5 seconds
 
+    private config: LicenseConfig = {
+        maxRetries: 3,
+        retryDelay: 5000,
+        validationInterval: 24,
+        showNotifications: true
+    };
+    private validationErrors: ExtensionError[] = [];
+
     /**
      * Sets up the license manager when it's first created
      * This is private because we only want one instance (singleton pattern)
      */
     private constructor(context: vscode.ExtensionContext) {
         this.context = context;
+        this.loadConfig();
 
         // Create status bar with highest priority
         this.statusBarItem = vscode.window.createStatusBarItem(
@@ -59,6 +68,26 @@ export class LicenseManager {
 
         // Ensure status bar is disposed properly
         context.subscriptions.push(this.statusBarItem);
+    }
+
+    private loadConfig(): void {
+        const config = vscode.workspace.getConfiguration('featureRich.license');
+        this.config = {
+            maxRetries: config.get('maxRetries') ?? 3,
+            retryDelay: config.get('retryDelay') ?? 5000,
+            validationInterval: config.get('validationInterval') ?? 24,
+            showNotifications: config.get('showValidationNotifications') ?? true
+        };
+    }
+
+    private logError(error: ExtensionError): void {
+        this.validationErrors.push({
+            ...error,
+            timestamp: new Date().toISOString()
+        });
+        if (this.config.showNotifications) {
+            vscode.window.showErrorMessage(error.message);
+        }
     }
 
     /**
@@ -353,19 +382,28 @@ export class LicenseManager {
             instanceId: this.context.globalState.get('instanceId') || null,
             lastValidated: this.context.globalState.get('lastValidated'),
             lastValidationSuccess: this.isLicensed,
-            retryCount: this.retryAttempts
+            validationErrors: this.validationErrors,
+            retryCount: this.retryAttempts,
+            config: this.config,
+            validUntil: this.context.globalState.get('validUntil')
         };
     }
 
     // Add retry mechanism
-    private async withRetry<T>(operation: () => Promise<T>): Promise<T> {
-        for (let i = 0; i < this.MAX_RETRIES; i++) {
+    private async withRetry<T>(operation: () => Promise<T>, retryable = true): Promise<T> {
+        for (let i = 0; i < this.config.maxRetries; i++) {
             try {
                 return await operation();
             } catch (error) {
-                this.retryAttempts++;
-                if (i === this.MAX_RETRIES - 1) throw error;
-                await new Promise(resolve => setTimeout(resolve, this.RETRY_DELAY));
+                const isLastAttempt = i === this.config.maxRetries - 1;
+                this.logError({
+                    code: 'RETRY_ERROR',
+                    message: `Operation failed (attempt ${i + 1}/${this.config.maxRetries})`,
+                    details: error,
+                    retryable
+                });
+                if (isLastAttempt || !retryable) throw error;
+                await new Promise(resolve => setTimeout(resolve, this.config.retryDelay));
             }
         }
         throw new Error('Max retries reached');

@@ -57,6 +57,21 @@
                             "type": "number",
                             "default": 5000,
                             "description": "Delay between retry attempts (milliseconds)"
+                        },
+                        "errorTracking": {
+                            "type": "object",
+                            "properties": {
+                                "maxErrors": {
+                                    "type": "number",
+                                    "default": 100,
+                                    "description": "Maximum number of errors to keep in history"
+                                },
+                                "cleanupInterval": {
+                                    "type": "number",
+                                    "default": 7,
+                                    "description": "Days to keep error history"
+                                }
+                            }
                         }
                     }
                 }
