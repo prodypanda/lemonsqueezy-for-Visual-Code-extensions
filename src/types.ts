@@ -13,12 +13,22 @@ export interface ExtensionError {
     retryable?: boolean;
 }
 
+// Add error cleanup config
+export interface ErrorTrackingConfig {
+    maxErrors: number;
+    cleanupInterval: number;  // days
+    retainFailedAttempts: boolean;
+}
+
 // License validation config
 export interface LicenseConfig {
     maxRetries: number;
     retryDelay: number;
     validationInterval: number;
     showNotifications: boolean;
+    errorTracking: ErrorTrackingConfig;
+    offlineTolerance: number;  // hours
+    validateOnStartup: boolean;
 }
 
 // Extend base response for specific responses

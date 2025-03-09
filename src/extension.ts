@@ -17,6 +17,17 @@ const PREMIUM_DECORATIONS = {
     })
 };
 
+const COMMAND_TIMEOUT = 30000; // 30 seconds
+
+function withTimeout<T>(promise: Promise<T>, timeout: number): Promise<T> {
+    return Promise.race([
+        promise,
+        new Promise<T>((_, reject) =>
+            setTimeout(() => reject(new Error('Operation timed out')), timeout)
+        )
+    ]);
+}
+
 /**
  * Example Premium Feature: Base64 Encoding
  * Replace or modify this with your own premium features
@@ -122,6 +133,11 @@ export async function activate(context: vscode.ExtensionContext) {
 
     licenseManager.startPeriodicValidation();
     licenseManager.updateStatusBarItem();
+
+    // Add cleanup on deactivation
+    context.subscriptions.push({
+        dispose: () => licenseManager.dispose()
+    });
 
     // Enhanced command registration with validation
     const commands = [
@@ -285,7 +301,20 @@ export async function activate(context: vscode.ExtensionContext) {
                 }
             })
         }
-    ];
+    ].map(command => ({
+        ...command,
+        callback: async () => {
+            try {
+                await withTimeout(Promise.resolve(command.callback()), COMMAND_TIMEOUT);
+            } catch (error) {
+                if (error instanceof Error && error.message === 'Operation timed out') {
+                    vscode.window.showErrorMessage('Operation timed out. Please try again.');
+                } else {
+                    throw error;
+                }
+            }
+        }
+    }));
 
     // Register commands with error handling
     commands.forEach(({ id, callback }) => {

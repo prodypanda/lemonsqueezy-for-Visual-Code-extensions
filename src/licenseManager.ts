@@ -2,7 +2,7 @@
 import axios from 'axios';
 import * as vscode from 'vscode';
 import { v4 as uuidv4 } from 'uuid';
-import { ValidationResponse, LicenseState, LicenseConfig, ExtensionError } from './types';
+import { ValidationResponse, LicenseState, LicenseConfig, ExtensionError, ErrorTrackingConfig } from './types';
 
 /**
  * Main class that handles all license-related features
@@ -33,9 +33,30 @@ export class LicenseManager {
         maxRetries: 3,
         retryDelay: 5000,
         validationInterval: 24,
-        showNotifications: true
+        showNotifications: true,
+        errorTracking: {
+            maxErrors: 100,
+            cleanupInterval: 7,
+            retainFailedAttempts: false
+        },
+        offlineTolerance: 72,
+        validateOnStartup: true
     };
     private validationErrors: ExtensionError[] = [];
+    private cleanupInterval: NodeJS.Timer | null = null;
+    private readonly DEFAULT_CONFIG: LicenseConfig = {
+        maxRetries: 3,
+        retryDelay: 5000,
+        validationInterval: 24,
+        showNotifications: true,
+        errorTracking: {
+            maxErrors: 100,
+            cleanupInterval: 7,
+            retainFailedAttempts: false
+        },
+        offlineTolerance: 72,
+        validateOnStartup: true
+    };
 
     /**
      * Sets up the license manager when it's first created
@@ -68,15 +89,36 @@ export class LicenseManager {
 
         // Ensure status bar is disposed properly
         context.subscriptions.push(this.statusBarItem);
+
+        this.startErrorCleanup();
+    }
+
+    private startErrorCleanup(): void {
+        const { cleanupInterval } = this.config.errorTracking;
+        this.cleanupInterval = setInterval(() => {
+            this.cleanupErrors();
+        }, cleanupInterval * 24 * 60 * 60 * 1000);
+    }
+
+    private cleanupErrors(): void {
+        const { maxErrors, retainFailedAttempts } = this.config.errorTracking;
+        const now = new Date();
+
+        this.validationErrors = this.validationErrors
+            .filter(error => {
+                if (!error.timestamp) return false;
+                const age = now.getTime() - new Date(error.timestamp).getTime();
+                const keepError = age < this.config.errorTracking.cleanupInterval * 24 * 60 * 60 * 1000;
+                return keepError || (retainFailedAttempts && error.code === 'VALIDATION_FAILED');
+            })
+            .slice(-maxErrors);
     }
 
     private loadConfig(): void {
         const config = vscode.workspace.getConfiguration('featureRich.license');
         this.config = {
-            maxRetries: config.get('maxRetries') ?? 3,
-            retryDelay: config.get('retryDelay') ?? 5000,
-            validationInterval: config.get('validationInterval') ?? 24,
-            showNotifications: config.get('showValidationNotifications') ?? true
+            ...this.DEFAULT_CONFIG,
+            ...config
         };
     }
 
@@ -407,5 +449,14 @@ export class LicenseManager {
             }
         }
         throw new Error('Max retries reached');
+    }
+
+    public dispose(): void {
+        if (this.cleanupInterval) {
+            clearInterval(this.cleanupInterval);
+        }
+        if (this.statusBarItem) {
+            this.statusBarItem.dispose();
+        }
     }
 }
