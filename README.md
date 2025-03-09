@@ -1,6 +1,84 @@
-# Feature Rich Extension
+# VS Code Extension Blueprint with LemonSqueezy Integration
 
-A powerful Visual Studio Code extension that offers both free and premium features with LemonSqueezy integration for license management.
+A template for creating Visual Studio Code extensions with freemium features using LemonSqueezy for license management.
+
+## 🎯 Blueprint Purpose
+
+This repository serves as a starting point for developers who want to:
+- Create VS Code extensions with both free and premium features
+- Implement secure license validation using LemonSqueezy
+- Handle activation/deactivation of premium features
+- Manage license state persistence
+
+## 🏗️ Architecture
+
+### License Management
+- Built-in LemonSqueezy API integration
+- Secure license validation system
+- Status bar indicator for license state
+- Persistent license storage
+
+### Feature Gating Example
+The blueprint includes example features to demonstrate the freemium model:
+
+**Free Features:**
+- Word count functionality
+- Status bar integration
+
+**Premium Features:**
+- Base64 encoding/decoding
+- Syntax highlighting
+  - Custom bracket highlighting
+  - Keyword highlighting
+
+## 🚀 Getting Started
+
+1. Clone this repository
+2. Replace placeholder values:
+```typescript
+private readonly STORE_ID = YOUR_STORE_ID;
+private readonly PRODUCT_ID = YOUR_PRODUCT_ID;
+```
+3. Add your own free/premium features
+
+## 💳 LemonSqueezy Integration
+
+### API Endpoints Used
+- `/v1/licenses/validate` - Validates license keys
+- `/v1/licenses/activate` - Activates licenses for specific instances
+- `/v1/licenses/deactivate` - Deactivates license instances
+
+### License States
+- Free: Basic functionality
+- Premium: Full access after license activation
+
+### Security
+- Server-side validation
+- Instance-based licensing
+- Regular validation checks
+
+## 📝 Implementation Guide
+
+1. **Add Free Features**
+   ```typescript
+   export function yourFreeFeature() {
+     // Available to all users
+   }
+   ```
+
+2. **Add Premium Features**
+   ```typescript
+   if (licenseManager.isFeatureAvailable()) {
+     // Only available with valid license
+   }
+   ```
+
+3. **Handle License States**
+   ```typescript
+   licenseManager.updateStatusBarItem();
+   ```
+
+See the example implementation in `src/` for complete working code.
 
 ## Features
 

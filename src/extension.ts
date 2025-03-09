@@ -3,8 +3,7 @@ import * as vscode from 'vscode';
 import { LicenseManager } from './licenseManager';
 import { Base64Result } from './types';
 
-// Define how special text should look (for premium features)
-// These are used to highlight code in different colors
+// Example premium feature styling - Replace with your own premium feature styles
 const PREMIUM_DECORATIONS = {
     // Bracket highlighting style (orange color)
     brackets: vscode.window.createTextEditorDecorationType({
@@ -19,7 +18,8 @@ const PREMIUM_DECORATIONS = {
 };
 
 /**
- * Encodes text to base64
+ * Example Premium Feature: Base64 Encoding
+ * Replace or modify this with your own premium features
  * @param text Text to encode
  */
 function encodeBase64(text: string): Base64Result {
@@ -32,7 +32,8 @@ function encodeBase64(text: string): Base64Result {
 }
 
 /**
- * Decodes base64 to text
+ * Example Premium Feature: Base64 Decoding
+ * Replace or modify this with your own premium features
  * @param base64 Base64 string to decode
  */
 function decodeBase64(base64: string): Base64Result {
@@ -45,8 +46,8 @@ function decodeBase64(base64: string): Base64Result {
 }
 
 /**
- * Main function that starts our extension
- * This runs when someone activates our extension in VS Code
+ * Extension Activation
+ * This is where you register your commands and initialize the license system
  * 
  * Steps:
  * 1. Start license checking system
@@ -67,7 +68,7 @@ export async function activate(context: vscode.ExtensionContext) {
     licenseManager.startPeriodicValidation();
     licenseManager.updateStatusBarItem();
 
-    // List of all commands our extension provides
+    // Example command structure - Replace with your own commands
     const commands = [
         // Command to activate a license
         {
@@ -101,6 +102,7 @@ export async function activate(context: vscode.ExtensionContext) {
                 }
             }
         },
+        // Example free feature
         {
             id: 'extension.freeSample',
             callback: () => {
@@ -112,6 +114,7 @@ export async function activate(context: vscode.ExtensionContext) {
                 }
             }
         },
+        // Example premium feature
         {
             id: 'extension.premiumFeature',
             callback: () => {
