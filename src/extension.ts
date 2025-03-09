@@ -23,6 +23,15 @@ const PREMIUM_DECORATIONS = {
  * @param text Text to encode
  */
 function encodeBase64(text: string): Base64Result {
+    if (!text) {
+        return {
+            success: false,
+            message: 'No text provided',
+            result: '',
+            error: 'Empty input'
+        };
+    }
+
     try {
         const encoded = Buffer.from(text).toString('base64');
         return {
@@ -31,11 +40,12 @@ function encodeBase64(text: string): Base64Result {
             message: 'Text encoded successfully'
         };
     } catch (error) {
+        console.error('Encoding error:', error);
         return {
             success: false,
             result: '',
             message: 'Failed to encode text',
-            error: 'Failed to encode text'
+            error: error instanceof Error ? error.message : 'Unknown error'
         };
     }
 }
@@ -63,13 +73,15 @@ function decodeBase64(base64: string): Base64Result {
     }
 }
 
-// Add command error handling wrapper
+// Enhanced error handling wrapper
 function handleCommand(callback: () => Promise<void> | void): () => Promise<void> {
     return async () => {
         try {
             await callback();
         } catch (error) {
-            vscode.window.showErrorMessage(`Error: ${error instanceof Error ? error.message : 'Unknown error'}`);
+            const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+            vscode.window.showErrorMessage(`Operation failed: ${errorMessage}`);
+            console.error('Command error:', error);
         }
     };
 }
@@ -97,7 +109,7 @@ export async function activate(context: vscode.ExtensionContext) {
     licenseManager.startPeriodicValidation();
     licenseManager.updateStatusBarItem();
 
-    // Example command structure - Replace with your own commands
+    // Enhanced command registration with validation
     const commands = [
         // Command to activate a license
         {
@@ -108,7 +120,9 @@ export async function activate(context: vscode.ExtensionContext) {
                     prompt: 'Enter your license key',
                     placeHolder: 'xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx',
                     validateInput: (value) => {
-                        return /^[a-zA-Z0-9-]+$/.test(value) ? null : 'Invalid license key format';
+                        if (!value) return 'License key cannot be empty';
+                        if (!/^[a-zA-Z0-9-]+$/.test(value)) return 'Invalid license key format';
+                        return null;
                     }
                 });
 
@@ -256,11 +270,15 @@ export async function activate(context: vscode.ExtensionContext) {
         }
     ];
 
-    // Register all our commands with VS Code
-    commands.forEach(command => {
-        context.subscriptions.push(
-            vscode.commands.registerCommand(command.id, command.callback)
-        );
+    // Register commands with error handling
+    commands.forEach(({ id, callback }) => {
+        try {
+            context.subscriptions.push(
+                vscode.commands.registerCommand(id, callback)
+            );
+        } catch (error) {
+            console.error(`Failed to register command ${id}:`, error);
+        }
     });
 }
 

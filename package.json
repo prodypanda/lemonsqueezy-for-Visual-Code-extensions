@@ -29,6 +29,26 @@
                         "showNotifications": true
                     },
                     "description": "License validation settings"
+                },
+                "featureRich.license": {
+                    "type": "object",
+                    "properties": {
+                        "validationInterval": {
+                            "type": "number",
+                            "default": 24,
+                            "description": "License validation interval in hours"
+                        },
+                        "showValidationNotifications": {
+                            "type": "boolean",
+                            "default": true,
+                            "description": "Show notifications about license validation"
+                        },
+                        "retryOnError": {
+                            "type": "boolean",
+                            "default": true,
+                            "description": "Retry failed license validations"
+                        }
+                    }
                 }
             }
         },

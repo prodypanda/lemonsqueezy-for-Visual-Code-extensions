@@ -1,12 +1,18 @@
-// Base response interface for all API calls
+// Common response interface for consistency
 export interface BaseResponse {
     success: boolean;
     message: string;
 }
 
-// Response for license operations
+// Extend base response for specific responses
 export interface ValidationResponse extends BaseResponse {
     data?: LemonSqueezyResponse;
+    error?: string;
+}
+
+export interface Base64Result extends BaseResponse {
+    result: string;
+    error?: string;
 }
 
 // Information about the store and product where the license was bought
@@ -47,16 +53,11 @@ export interface LemonSqueezyErrorResponse {
     status: number;
 }
 
-// Base64 operation result
-export interface Base64Result extends BaseResponse {
-    result: string;
-    error?: string;
-}
-
-// License state with enhanced type safety
+// Enhanced license state with validation tracking
 export interface LicenseState {
     isLicensed: boolean;
     licenseKey: string | null;
     instanceId: string | null;
     lastValidated?: string;  // ISO date string
+    lastValidationSuccess?: boolean;
 }
