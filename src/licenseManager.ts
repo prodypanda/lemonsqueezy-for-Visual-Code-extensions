@@ -197,43 +197,97 @@ export class LicenseManager {
      */
     private async validateLicenseKey(licenseKey: string): Promise<ValidationResponse> {
         try {
-            if (!licenseKey?.match(/^[a-zA-Z0-9-]+$/)) {
-                return { success: false, message: 'Invalid license key format.' };
+            if (!licenseKey?.match(/^[a-zA-Z0-9-]{36}$/)) {
+                return {
+                    success: false,
+                    message: 'Invalid license key format. Expected format: XXXXXXXX-XXXX-XXXX-XXXX-XXXXXXXXXXXX'
+                };
             }
 
-            // Check cache first
-            if (this.config.apiCache.enabled) {
-                const cached = this.getCachedResponse(this.apiCache.validations, licenseKey);
-                if (cached) return { success: true, message: 'License validated (cached)', data: cached };
+            const response = await axios.post(this.API.validate,
+                `license_key=${encodeURIComponent(licenseKey)}`,
+                {
+                    headers: {
+                        'Accept': 'application/json',
+                        'Content-Type': 'application/x-www-form-urlencoded'
+                    }
+                }
+            );
+
+            // Log the response for debugging
+            console.log('Validate Response:', response.data);
+
+            // Check for API errors first
+            if (response.data.error) {
+                return {
+                    success: false,
+                    message: response.data.error
+                };
             }
 
-            const response = await this.makeApiRequest(this.API.validate,
-                `license_key=${licenseKey}&instance_id=${this.context.globalState.get('instanceId')}`);
-
-            if (!response.valid) {
-                return { success: false, message: response.error || 'Invalid license key.' };
+            // Check if the license is valid
+            if (!response.data.valid) {
+                return {
+                    success: false,
+                    message: 'Invalid license key. Please check and try again.'
+                };
             }
 
-            if (response.meta.store_id !== this.STORE_ID) {
-                return { success: false, message: 'License key belongs to a different store.' };
+            // Check store ID match
+            if (response.data.meta.store_id !== this.STORE_ID) {
+                return {
+                    success: false,
+                    message: 'This license key belongs to a different store.'
+                };
             }
 
-            if (response.meta.product_id !== this.PRODUCT_ID) {
-                return { success: false, message: 'License key is for a different product.' };
-            }
-
-            // Cache successful response
-            if (this.config.apiCache.enabled) {
-                this.setCachedResponse(this.apiCache.validations, licenseKey, response);
+            // Check product ID match
+            if (response.data.meta.product_id !== this.PRODUCT_ID) {
+                return {
+                    success: false,
+                    message: 'This license key is for a different product.'
+                };
             }
 
             return {
                 success: true,
                 message: 'License key is valid.',
-                data: response
+                data: response.data
             };
+
         } catch (error) {
-            return this.handleAxiosError(error);
+            console.error('Validation error:', error);
+
+            if (axios.isAxiosError(error)) {
+                // Handle specific HTTP errors
+                if (error.response?.status === 404) {
+                    return {
+                        success: false,
+                        message: 'Invalid license key. Please check and try again.'
+                    };
+                }
+                if (error.response?.status === 429) {
+                    return {
+                        success: false,
+                        message: 'Too many attempts. Please try again later.'
+                    };
+                }
+                if (error.response?.data?.error) {
+                    return {
+                        success: false,
+                        message: error.response.data.error
+                    };
+                }
+                return {
+                    success: false,
+                    message: `API Error: ${error.message}`
+                };
+            }
+
+            return {
+                success: false,
+                message: 'An unexpected error occurred. Please try again.'
+            };
         }
     }
 
@@ -634,8 +688,10 @@ export class LicenseManager {
             }
             // Re-throw application errors with specific messages
             if (error instanceof Error) {
+                console.error('API Error:', error.message);
                 throw error;
             }
+
             throw new Error('An unexpected error occurred while processing your request.');
         }
     }
