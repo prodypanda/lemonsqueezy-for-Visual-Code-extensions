@@ -5,8 +5,13 @@ import { v4 as uuidv4 } from 'uuid';
 import { ValidationResponse, LicenseState, LicenseConfig, ExtensionError, ErrorTrackingConfig } from './types';
 
 /**
- * Main class that handles all license-related features
- * This is like a manager that keeps track of whether someone has paid or is using a trial
+ * BLUEPRINT: License Manager for VS Code Extensions
+ * 
+ * How to use this blueprint:
+ * 1. Replace STORE_ID and PRODUCT_ID with your LemonSqueezy values
+ * 2. The license validation/activation/deactivation is already implemented
+ * 3. Use isFeatureAvailable() to gate premium features
+ * 4. All API calls to LemonSqueezy are pre-configured
  */
 export class LicenseManager {
     // There can only be one LicenseManager (this is called a singleton pattern)
@@ -17,7 +22,7 @@ export class LicenseManager {
     private isLicensed: boolean = false;            // Is this a paid user?
     private statusBarItem: vscode.StatusBarItem;    // The button in VS Code's status bar
 
-    // These values are from your LemonSqueezy account
+    // Replace these with your LemonSqueezy credentials
     private readonly STORE_ID = 157343;   // Your store's ID number
     private readonly PRODUCT_ID = 463516;  // Your product's ID number
 

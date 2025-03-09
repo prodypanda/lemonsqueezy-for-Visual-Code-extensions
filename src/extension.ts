@@ -1,3 +1,14 @@
+/**
+ * BLUEPRINT: VS Code Extension with Free/Premium Features
+ * 
+ * This file shows examples of:
+ * 1. How to create free features (freeSample)
+ * 2. How to create premium features (premiumFeature)
+ * 3. How to handle license activation/deactivation
+ * 
+ * Replace these examples with your own features
+ */
+
 // Import required VS Code functionality and our custom code
 import * as vscode from 'vscode';
 import { LicenseManager } from './licenseManager';
