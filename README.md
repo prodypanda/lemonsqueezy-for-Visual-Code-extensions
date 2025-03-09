@@ -26,18 +26,11 @@ A powerful Visual Studio Code extension that offers both free and premium featur
 
 1. Install the extension from the VS Code marketplace
 2. Access free features immediately
-3. Start a 14-day trial or activate your premium license
+3. Activate your premium license
 
 ### Activating Premium Features
 
-You can activate premium features in two ways:
-
-1. **Start Free Trial**
-   - Command: `Start Free Trial`
-   - Enjoy premium features for 14 days
-   - Access through Command Palette (`Ctrl+Shift+P` or `Cmd+Shift+P`)
-
-2. **Activate License**
+1. **Activate License**
    - Purchase a license from [our store](https://yourstore.lemonsqueezy.com)
    - Use command: `Activate Premium License`
    - Enter your license key
@@ -195,5 +188,4 @@ const ENDPOINTS = {
 
 The extension manages license states:
 - Free
-- Trial (14 days)
 - Premium (activated)

@@ -59,7 +59,6 @@ export interface CodeMetrics {
 // Used to track if premium features are available
 export interface LicenseState {
     isLicensed: boolean;
-    trialStartDate: string | null;
     licenseKey: string | null;
     instanceId: string | null;
 }

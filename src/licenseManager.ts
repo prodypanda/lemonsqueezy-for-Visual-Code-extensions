@@ -20,8 +20,6 @@ export class LicenseManager {
     // These values are from your LemonSqueezy account
     private readonly STORE_ID = 157343;   // Your store's ID number
     private readonly PRODUCT_ID = 463516;  // Your product's ID number
-    private readonly TRIAL_PERIOD_DAYS = 14;  // How long the trial lasts
-    private trialStartDate: Date | null = null;  // When did they start the trial?
 
     /**
      * Sets up the license manager when it's first created
@@ -37,8 +35,6 @@ export class LicenseManager {
         );
 
         // Load saved states
-        const savedDate = this.context.globalState.get<string>('trialStartDate');
-        this.trialStartDate = savedDate ? new Date(savedDate) : null;
         const licenseKey = this.context.globalState.get('licenseKey');
         this.isLicensed = !!licenseKey;
 
@@ -164,7 +160,6 @@ export class LicenseManager {
      * 
      * States:
      * - Free: Basic version
-     * - Trial: Using premium features temporarily
      * - Premium: Paid version with all features
      */
     public updateStatusBarItem(): void {
@@ -175,10 +170,6 @@ export class LicenseManager {
         if (this.isLicensed) {
             this.statusBarItem.text = "$(verified) Premium";
             this.statusBarItem.backgroundColor = new vscode.ThemeColor('statusBarItem.prominentBackground');
-        } else if (this.isTrialValid()) {
-            const days = this.getRemainingTrialDays();
-            this.statusBarItem.text = `$(clock) Trial (${days}d)`;
-            this.statusBarItem.backgroundColor = undefined;
         } else {
             this.statusBarItem.text = "$(star) Free";
             this.statusBarItem.backgroundColor = undefined;
@@ -282,43 +273,11 @@ export class LicenseManager {
     }
 
     /**
-     * Checks if the trial period is still valid
-     */
-    private isTrialValid(): boolean {
-        if (!this.trialStartDate) return false;
-        const trialEnd = new Date(this.trialStartDate);
-        trialEnd.setDate(trialEnd.getDate() + this.TRIAL_PERIOD_DAYS);
-        return new Date() < trialEnd;
-    }
-
-    /**
-     * Starts the trial period
-     */
-    async startTrial(): Promise<void> {
-        if (!this.trialStartDate) {
-            this.trialStartDate = new Date();
-            await this.context.globalState.update('trialStartDate', this.trialStartDate.toISOString());
-        }
-    }
-
-    /**
-     * Gets the remaining days in the trial period
-     * @returns Number of days remaining
-     */
-    getRemainingTrialDays(): number {
-        if (!this.trialStartDate) return 0;
-        const trialEnd = new Date(this.trialStartDate);
-        trialEnd.setDate(trialEnd.getDate() + this.TRIAL_PERIOD_DAYS);
-        const remaining = Math.ceil((trialEnd.getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24));
-        return Math.max(0, remaining);
-    }
-
-    /**
      * Checks if premium features are available
      * @returns Whether premium features can be accessed
      */
     isFeatureAvailable(): boolean {
-        return this.isLicensed || this.isTrialValid();
+        return this.isLicensed;
     }
 
     /**
@@ -366,7 +325,6 @@ export class LicenseManager {
     getLicenseState(): LicenseState {
         return {
             isLicensed: this.isLicensed,
-            trialStartDate: this.trialStartDate?.toISOString() || null,
             licenseKey: this.context.globalState.get('licenseKey') || null,
             instanceId: this.context.globalState.get('instanceId') || null
         };

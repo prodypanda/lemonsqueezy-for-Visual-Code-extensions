@@ -259,20 +259,11 @@ export async function activate(context: vscode.ExtensionContext) {
         );
     });
 
-    // Add command to start free trial
-    context.subscriptions.push(
-        vscode.commands.registerCommand('extension.startTrial', async () => {
-            await licenseManager.startTrial();
-            const days = licenseManager.getRemainingTrialDays();
-            vscode.window.showInformationMessage(`Trial started! ${days} days remaining`);
-        })
-    );
-
     // Enhance metrics visualization
     context.subscriptions.push(
         vscode.commands.registerCommand('extension.showMetricsChart', () => {
             if (!licenseManager.isFeatureAvailable()) {
-                vscode.window.showWarningMessage('Premium feature requires a license or active trial.');
+                vscode.window.showWarningMessage('Premium feature requires a license.');
                 return;
             }
 

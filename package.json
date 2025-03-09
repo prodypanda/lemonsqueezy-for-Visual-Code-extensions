@@ -71,10 +71,6 @@
                 "title": "Show Code Metrics (Premium)"
             },
             {
-                "command": "extension.startTrial",
-                "title": "Start Free Trial"
-            },
-            {
                 "command": "extension.showMetricsChart",
                 "title": "Show Code Metrics Chart (Premium)"
             }
