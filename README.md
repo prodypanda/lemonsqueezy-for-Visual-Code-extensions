@@ -2,6 +2,43 @@
 
 A production-ready template for creating VS Code extensions with freemium features using LemonSqueezy for license management.
 
+## Quick Start
+
+1. Clone this repository
+2. Update LemonSqueezy credentials in `src/licenseManager.ts`:
+```typescript
+private readonly STORE_ID = YOUR_STORE_ID;    // From LemonSqueezy dashboard
+private readonly PRODUCT_ID = YOUR_PRODUCT_ID; // From your product settings
+```
+
+3. Replace example features with your own:
+```typescript
+// Free feature example
+export function myFreeFeature() {
+    // Available to all users
+    vscode.window.showInformationMessage('This is a free feature!');
+}
+
+// Premium feature example
+export function myPremiumFeature() {
+    if (licenseManager.isFeatureAvailable()) {
+        // Only available to paid users
+        vscode.window.showInformationMessage('This is a premium feature!');
+    } else {
+        vscode.window.showWarningMessage('Please upgrade to access this feature.');
+    }
+}
+```
+
+## Features
+
+- **Complete License Management**: Fully integrated with LemonSqueezy's License API
+- **Secure Validation**: Server-side license validation with caching
+- **Offline Support**: Graceful handling of offline scenarios
+- **Error Handling**: Comprehensive error handling and retry mechanisms
+- **UI Integration**: Status bar indicator and user notifications
+- **Example Features**: Working examples of free and premium features
+
 ## 🎯 What This Blueprint Does
 
 - Provides a complete freemium extension structure

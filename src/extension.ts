@@ -133,53 +133,45 @@ async function handleCommandWithRetry<T>(
  * 4. Set up trial system
  */
 export async function activate(context: vscode.ExtensionContext) {
-    // Create our license manager (handles free/premium features)
     const licenseManager = LicenseManager.getInstance(context);
 
-    // Make sure our status bar button shows up
-    setTimeout(async () => {
-        await licenseManager.validateLicense();
-        licenseManager.updateStatusBarItem();
-    }, 500);
-
-    licenseManager.startPeriodicValidation();
+    // Initialize license state immediately
+    await licenseManager.validateLicense();
     licenseManager.updateStatusBarItem();
 
-    // Add cleanup on deactivation
-    context.subscriptions.push({
-        dispose: () => licenseManager.dispose()
-    });
+    // Setup periodic validation
+    const validationInterval = setInterval(async () => {
+        await licenseManager.validateLicense();
+    }, 24 * 60 * 60 * 1000); // Check every 24 hours
 
-    // Enhanced command registration with validation
+    // Register our commands with enhanced error handling
     const commands = [
-        // Command to activate a license
         {
             id: 'extension.activateLicense',
-            callback: () => handleCommandWithRetry(
-                async () => {
-                    // Show input box for license key
-                    const licenseKey = await vscode.window.showInputBox({
-                        prompt: 'Enter your license key',
-                        placeHolder: 'xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx',
-                        validateInput: (value) => {
-                            if (!value) return 'License key cannot be empty';
-                            if (!/^[a-zA-Z0-9-]+$/.test(value)) return 'Invalid license key format';
-                            return null;
-                        }
-                    });
-
-                    // If they entered a key, try to activate it
-                    if (licenseKey) {
-                        const result = await licenseManager.activateLicense(licenseKey);
-                        if (result.success) {
-                            vscode.window.showInformationMessage(result.message);
-                        } else {
-                            vscode.window.showErrorMessage(result.message);
-                        }
+            callback: async () => {
+                const licenseKey = await vscode.window.showInputBox({
+                    prompt: 'Enter your license key from LemonSqueezy',
+                    placeHolder: 'XXXXXXXX-XXXX-XXXX-XXXX-XXXXXXXXXXXX',
+                    validateInput: (value) => {
+                        return /^[a-zA-Z0-9-]+$/.test(value) ? null : 'Invalid license key format';
                     }
-                },
-                'Failed to activate license'
-            )
+                });
+
+                if (!licenseKey) return;
+
+                vscode.window.withProgress({
+                    location: vscode.ProgressLocation.Notification,
+                    title: 'Activating license...',
+                    cancellable: false
+                }, async () => {
+                    const result = await licenseManager.activateLicense(licenseKey);
+                    if (result.success) {
+                        vscode.window.showInformationMessage(result.message);
+                    } else {
+                        vscode.window.showErrorMessage(result.message);
+                    }
+                });
+            }
         },
         {
             id: 'extension.deactivateLicense',
@@ -312,30 +304,21 @@ export async function activate(context: vscode.ExtensionContext) {
                 }
             })
         }
-    ].map(command => ({
-        ...command,
-        callback: async () => {
-            try {
-                await withTimeout(Promise.resolve(command.callback()), COMMAND_TIMEOUT);
-            } catch (error) {
-                if (error instanceof Error && error.message === 'Operation timed out') {
-                    vscode.window.showErrorMessage('Operation timed out. Please try again.');
-                } else {
-                    throw error;
-                }
-            }
-        }
-    }));
+    ];
 
-    // Register commands with error handling
-    commands.forEach(({ id, callback }) => {
-        try {
-            context.subscriptions.push(
-                vscode.commands.registerCommand(id, callback)
-            );
-        } catch (error) {
-            console.error(`Failed to register command ${id}:`, error);
+    // Cleanup on deactivation
+    context.subscriptions.push({
+        dispose: () => {
+            clearInterval(validationInterval);
+            licenseManager.dispose();
         }
+    });
+
+    // Register commands
+    commands.forEach(({ id, callback }) => {
+        context.subscriptions.push(
+            vscode.commands.registerCommand(id, callback)
+        );
     });
 }
 

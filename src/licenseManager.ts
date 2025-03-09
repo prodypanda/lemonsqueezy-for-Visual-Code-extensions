@@ -201,19 +201,30 @@ export class LicenseManager {
                 return { success: false, message: 'Invalid license key format.' };
             }
 
+            // Check cache first
+            if (this.config.apiCache.enabled) {
+                const cached = this.getCachedResponse(this.apiCache.validations, licenseKey);
+                if (cached) return { success: true, message: 'License validated (cached)', data: cached };
+            }
+
             const response = await this.makeApiRequest(this.API.validate,
-                `license_key=${licenseKey}`);
+                `license_key=${licenseKey}&instance_id=${this.context.globalState.get('instanceId')}`);
 
             if (!response.valid) {
-                return { success: false, message: 'Invalid license key.' };
+                return { success: false, message: response.error || 'Invalid license key.' };
             }
 
             if (response.meta.store_id !== this.STORE_ID) {
-                return { success: false, message: 'This license key belongs to a different store.' };
+                return { success: false, message: 'License key belongs to a different store.' };
             }
 
             if (response.meta.product_id !== this.PRODUCT_ID) {
-                return { success: false, message: 'This license key is for a different product.' };
+                return { success: false, message: 'License key is for a different product.' };
+            }
+
+            // Cache successful response
+            if (this.config.apiCache.enabled) {
+                this.setCachedResponse(this.apiCache.validations, licenseKey, response);
             }
 
             return {
@@ -244,29 +255,32 @@ export class LicenseManager {
             return validationResult;
         }
 
-        // If validation passed, proceed with activation
-        const instanceName = `vscode-${uuidv4()}`;
-
         try {
-            const response = await axios.post('https://api.lemonsqueezy.com/v1/licenses/activate',
-                `license_key=${licenseKey}&instance_name=${instanceName}`,
-                {
-                    headers: {
-                        'Accept': 'application/json',
-                        'Content-Type': 'application/x-www-form-urlencoded'
-                    }
-                }
-            );
+            const instanceName = `vscode-${uuidv4()}`;
+            const response = await this.makeApiRequest(this.API.activate,
+                `license_key=${licenseKey}&instance_name=${instanceName}`);
 
-            if (response.data.activated) {
-                await this.context.globalState.update('licenseKey', licenseKey);
-                await this.context.globalState.update('instanceId', response.data.instance.id);
-                this.isLicensed = true;
-                this.updateStatusBarItem();
-                return { success: true, message: 'License activated successfully!' };
+            if (!response.activated) {
+                return {
+                    success: false,
+                    message: response.error || 'Failed to activate license.'
+                };
             }
 
-            return { success: false, message: 'License activation failed.' };
+            // Store license data
+            await this.context.globalState.update('licenseKey', licenseKey);
+            await this.context.globalState.update('instanceId', response.instance?.id);
+            await this.context.globalState.update('lastValidated', new Date().toISOString());
+            await this.context.globalState.update('validUntil', response.license_key?.expires_at);
+
+            this.isLicensed = true;
+            this.updateStatusBarItem();
+
+            return {
+                success: true,
+                message: 'License activated successfully!',
+                data: response
+            };
         } catch (error) {
             return this.handleAxiosError(error);
         }
