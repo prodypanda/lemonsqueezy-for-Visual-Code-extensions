@@ -404,12 +404,14 @@ export class LicenseManager {
             this.statusBarItem.tooltip = "Premium features activated - Click to deactivate license";
             this.statusBarItem.command = 'extension.deactivateLicense';
             this.statusBarItem.backgroundColor = new vscode.ThemeColor('statusBarItem.prominentBackground');
+            this.statusBarItem.color = "#1dc41d";
         } else {
             this.statusBarItem.text = "$(star) Free";
             this.statusBarItem.backgroundColor = undefined;
             this.statusBarItem.tooltip = "Free version - Click to activate premium features";
             this.statusBarItem.command = 'extension.activateLicense';
             this.statusBarItem.backgroundColor = new vscode.ThemeColor('statusBarItem.errorBackground');
+            this.statusBarItem.color = "#3ba1eb"
         }
 
         this.ensureStatusBarVisibility();
