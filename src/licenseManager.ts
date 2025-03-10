@@ -304,6 +304,15 @@ export class LicenseManager {
      */
     async activateLicense(licenseKey: string): Promise<ValidationResponse> {
         try {
+            // Check if there's already an active license
+            const currentLicenseKey = this.context.globalState.get('licenseKey');
+            if (currentLicenseKey) {
+                return {
+                    success: false,
+                    message: 'A license is already active. Please deactivate the current license before activating a new one.'
+                };
+            }
+
             // Better license key validation
             if (!licenseKey?.match(/^[a-zA-Z0-9-]{36}$/)) {
                 return {
@@ -392,15 +401,14 @@ export class LicenseManager {
         if (this.isLicensed) {
             this.statusBarItem.text = "$(verified) Premium";
             this.statusBarItem.backgroundColor = new vscode.ThemeColor('statusBarItem.prominentBackground');
+            this.statusBarItem.tooltip = "Premium features activated - Click to deactivate license";
+            this.statusBarItem.command = 'extension.deactivateLicense';
         } else {
             this.statusBarItem.text = "$(star) Free";
             this.statusBarItem.backgroundColor = undefined;
+            this.statusBarItem.tooltip = "Free version - Click to activate premium features";
+            this.statusBarItem.command = 'extension.activateLicense';
         }
-
-        this.statusBarItem.command = 'extension.activateLicense';
-        this.statusBarItem.tooltip = this.isLicensed ?
-            "Premium features activated" :
-            "Click to activate premium features";
 
         this.ensureStatusBarVisibility();
     }

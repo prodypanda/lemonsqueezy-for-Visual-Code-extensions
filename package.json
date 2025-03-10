@@ -17,8 +17,8 @@
                 "featureRich.highlightColors": {
                     "type": "object",
                     "default": {
-                        "brackets": "#FF9800",
-                        "keywords": "#2196F3"
+                        "brackets": "#ff0000",
+                        "keywords": "#ff00fb"
                     },
                     "description": "Custom colors for syntax highlighting"
                 },

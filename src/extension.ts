@@ -18,12 +18,12 @@ import { Base64Result } from './types';
 const PREMIUM_DECORATIONS = {
     // Bracket highlighting style (orange color)
     brackets: vscode.window.createTextEditorDecorationType({
-        color: '#FF9800',
+        color: '#ff0000',
         fontWeight: 'bold'
     }),
     // Keyword highlighting style (blue color)
     keywords: vscode.window.createTextEditorDecorationType({
-        color: '#2196F3',
+        color: '#ff00ee',
         fontWeight: 'bold'
     })
 };
@@ -150,6 +150,26 @@ export async function activate(context: vscode.ExtensionContext) {
             id: 'extension.activateLicense',
             callback: async () => {
                 try {
+                    // Check if there's already an active license
+                    const currentState = licenseManager.getLicenseState();
+                    if (currentState.isLicensed) {
+                        const choice = await vscode.window.showWarningMessage(
+                            'A license is already active. Do you want to deactivate it first?',
+                            'Yes, deactivate',
+                            'No, keep current'
+                        );
+
+                        if (choice === 'Yes, deactivate') {
+                            const deactivateResult = await licenseManager.deactivateLicense();
+                            if (!deactivateResult.success) {
+                                vscode.window.showErrorMessage('Failed to deactivate current license: ' + deactivateResult.message);
+                                return;
+                            }
+                        } else {
+                            return;
+                        }
+                    }
+
                     const licenseKey = await vscode.window.showInputBox({
                         prompt: 'Enter your license key from LemonSqueezy',
                         placeHolder: 'XXXXXXXX-XXXX-XXXX-XXXX-XXXXXXXXXXXX',
