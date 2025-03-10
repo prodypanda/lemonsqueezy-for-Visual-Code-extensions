@@ -400,7 +400,7 @@ export class LicenseManager {
 
         if (this.isLicensed) {
             this.statusBarItem.text = "$(verified) Premium";
-            this.statusBarItem.backgroundColor = new vscode.ThemeColor('statusBarItem.prominentBackground');
+            this.statusBarItem.backgroundColor = new vscode.ThemeColor('statusBarItem.errorBackground');
             this.statusBarItem.tooltip = "Premium features activated - Click to deactivate license";
             this.statusBarItem.command = 'extension.deactivateLicense';
             this.statusBarItem.backgroundColor = new vscode.ThemeColor('statusBarItem.prominentBackground');
