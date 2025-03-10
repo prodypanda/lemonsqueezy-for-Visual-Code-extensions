@@ -9,6 +9,9 @@
     "categories": [
         "Other"
     ],
+    "activationEvents": [
+        "onStartupFinished"
+    ],
     "main": "./out/extension.js",
     "contributes": {
         "configuration": {
@@ -109,14 +112,6 @@
         },
         "commands": [
             {
-                "command": "extension.freeSample",
-                "title": "Free Sample Feature"
-            },
-            {
-                "command": "extension.premiumFeature",
-                "title": "Premium Feature"
-            },
-            {
                 "command": "extension.activateLicense",
                 "title": "Activate Premium License"
             },
@@ -125,20 +120,24 @@
                 "title": "Deactivate Premium License"
             },
             {
-                "command": "extension.premiumHighlightKeywords",
-                "title": "Highlight Keywords (Premium)"
+                "command": "extension.freeSample",
+                "title": "Word count (Free Feature)"
             },
             {
-                "command": "extension.premiumHighlightAll",
-                "title": "Highlight All (Premium)"
+                "command": "extension.premiumFeature",
+                "title": "Highlight Brackets (Premium Feature)"
+            },
+            {
+                "command": "extension.premiumHighlightKeywords",
+                "title": "Highlight Keywords (Premium Feature)"
             },
             {
                 "command": "extension.encodeBase64",
-                "title": "Encode to Base64 (Premium)"
+                "title": "Encode to Base64 (Premium Feature)"
             },
             {
                 "command": "extension.decodeBase64",
-                "title": "Decode from Base64 (Premium)"
+                "title": "Decode from Base64 (Premium Feature)"
             }
         ]
     },

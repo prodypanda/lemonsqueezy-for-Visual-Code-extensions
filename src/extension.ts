@@ -133,6 +133,7 @@ async function handleCommandWithRetry<T>(
  * 4. Set up trial system
  */
 export async function activate(context: vscode.ExtensionContext) {
+    //vscode.window.showInformationMessage('Current VSC language:', vscode.env.language);
     const licenseManager = LicenseManager.getInstance(context);
 
     // Initialize license state immediately
@@ -266,7 +267,7 @@ export async function activate(context: vscode.ExtensionContext) {
             id: 'extension.premiumHighlightKeywords',
             callback: handleCommand(() => {
                 if (!licenseManager.isFeatureAvailable()) {
-                    vscode.window.showWarningMessage('Premium feature requires a license.');
+                    vscode.window.showWarningMessage('Premium feature requires a license. Please activate your license.');
                     return;
                 }
 
@@ -292,7 +293,7 @@ export async function activate(context: vscode.ExtensionContext) {
             id: 'extension.encodeBase64',
             callback: handleCommand(() => {
                 if (!licenseManager.isFeatureAvailable()) {
-                    vscode.window.showWarningMessage('Premium feature requires a license.');
+                    vscode.window.showWarningMessage('Premium feature requires a license. Please activate your license.');
                     return;
                 }
 
@@ -320,7 +321,7 @@ export async function activate(context: vscode.ExtensionContext) {
             id: 'extension.decodeBase64',
             callback: handleCommand(() => {
                 if (!licenseManager.isFeatureAvailable()) {
-                    vscode.window.showWarningMessage('Premium feature requires a license.');
+                    vscode.window.showWarningMessage('Premium feature requires a license. Please activate your license.');
                     return;
                 }
 
