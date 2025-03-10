@@ -39,19 +39,6 @@ function withTimeout<T>(promise: Promise<T>, timeout: number): Promise<T> {
     ]);
 }
 
-// Add this helper function near the top of the file
-function formatLicenseKey(key: string): string {
-    // Remove any existing dashes and spaces
-    const cleaned = key.replace(/[-\s]/g, '');
-
-    // Check if we have exactly 32 characters
-    if (cleaned.length === 32) {
-        // Insert dashes every 8 characters
-        return cleaned.match(/.{8}/g)?.join('-') || cleaned;
-    }
-    return key;
-}
-
 /**
  * Example Premium Feature: Base64 Encoding
  * Replace or modify this with your own premium features
@@ -184,35 +171,19 @@ export async function activate(context: vscode.ExtensionContext) {
                         }
                     }
 
-                    // Create an intermediate input box that formats the key as the user types
-                    let formattedKey = '';
                     const licenseKey = await vscode.window.showInputBox({
                         prompt: 'Enter your license key from LemonSqueezy',
                         placeHolder: 'XXXXXXXX-XXXX-XXXX-XXXX-XXXXXXXXXXXX',
-                        validateInput: (value: string) => {
-                            // Format the input value first
-                            const formattedValue = formatLicenseKey(value);
-
-                            // Remove dashes and spaces for validation
-                            const cleaned = formattedValue.replace(/[-\s]/g, '');
-                            if (cleaned.length !== 32) {
-                                return 'License key must be 32 characters long';
-                            }
-                            if (!/^[a-zA-Z0-9]+$/.test(cleaned)) {
-                                return 'License key can only contain letters and numbers';
-                            }
-                            return null;
-                        },
-                        // InputBox will use the latest validated value
-                        value: ''
+                        validateInput: (value) => {
+                            return /^[a-zA-Z0-9-]{36}$/.test(value)
+                                ? null
+                                : 'Invalid license key format. Must be in format: XXXXXXXX-XXXX-XXXX-XXXX-XXXXXXXXXXXX';
+                        }
                     });
 
                     if (!licenseKey) {
                         return; // User cancelled
                     }
-
-                    // Format the key before using it
-                    const finalKey = formatLicenseKey(licenseKey);
 
                     await vscode.window.withProgress({
                         location: vscode.ProgressLocation.Notification,
@@ -221,7 +192,7 @@ export async function activate(context: vscode.ExtensionContext) {
                     }, async (progress) => {
                         try {
                             progress.report({ message: 'Validating license key...' });
-                            const result = await licenseManager.activateLicense(finalKey);
+                            const result = await licenseManager.activateLicense(licenseKey);
 
                             if (result.success) {
                                 vscode.window.showInformationMessage(result.message);
@@ -235,7 +206,6 @@ export async function activate(context: vscode.ExtensionContext) {
                             );
                         }
                     });
-
                 } catch (error) {
                     console.error('Command error:', error);
                     vscode.window.showErrorMessage(
