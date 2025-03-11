@@ -13,6 +13,7 @@
 import * as vscode from 'vscode';
 import { LicenseManager } from './licenseManager';
 import { Base64Result } from './types';
+import { SubscriptionPanel } from './panels/SubscriptionPanel';
 
 // Example premium feature styling - Replace with your own premium feature styles
 const PREMIUM_DECORATIONS = {
@@ -135,6 +136,15 @@ async function handleCommandWithRetry<T>(
 export async function activate(context: vscode.ExtensionContext) {
     //vscode.window.showInformationMessage('Current VSC language:', vscode.env.language);
     const licenseManager = LicenseManager.getInstance(context);
+
+    // Register Subscription Panel
+    const subscriptionProvider = new SubscriptionPanel(context.extensionUri, licenseManager);
+    context.subscriptions.push(
+        vscode.window.registerWebviewViewProvider(
+            SubscriptionPanel.viewType,
+            subscriptionProvider
+        )
+    );
 
     // Initialize license state immediately
     await licenseManager.validateLicense();
@@ -346,6 +356,14 @@ export async function activate(context: vscode.ExtensionContext) {
             })
         }
     ];
+
+    // Update subscription panel when license state changes
+    const updateSubscriptionPanel = () => {
+        subscriptionProvider.updateView();
+    };
+
+    // Add panel update to existing license state changes
+    licenseManager.onLicenseChange(updateSubscriptionPanel);
 
     // Cleanup on deactivation
     context.subscriptions.push({

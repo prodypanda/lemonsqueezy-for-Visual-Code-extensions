@@ -75,7 +75,6 @@ export class SubscriptionPanel implements vscode.WebviewViewProvider {
         return `<!DOCTYPE html>
         <html>
         <head>
-            <link href="https://cdn.jsdelivr.net/npm/vscode-codicons/dist/codicon.css" rel="stylesheet">
             <style>
                 body { 
                     padding: 15px;
@@ -193,42 +192,23 @@ export class SubscriptionPanel implements vscode.WebviewViewProvider {
                     background: var(--vscode-inputValidation-infoBackground);
                     color: var(--vscode-inputValidation-infoForeground);
                 }
-                .codicon {
-                    font-size: 14px;
-                    margin-right: 5px;
-                }
-                .usage-bar {
-                    width: 100%;
-                    height: 4px;
-                    background: var(--vscode-progressBar-background);
-                    border-radius: 2px;
-                    margin: 8px 0;
-                }
-                .usage-bar-fill {
-                    height: 100%;
-                    background: var(--vscode-progressBar-foreground);
-                    border-radius: 2px;
-                    transition: width 0.3s ease;
-                }
             </style>
         </head>
         <body>
             <div class="container">
                 <div class="section">
                     <div class="header">
-                        <i class="codicon codicon-key"></i>
+                        <span class="icon">$(key)</span>
                         <h2>License Management</h2>
                     </div>
                     <div id="licenseSection">
-                        <div id="activationForm" style="display: block;">
-                            <input type="text" id="licenseKey" class="license-input" 
-                                placeholder="Enter your license key (XXXX-XXXX-XXXX-XXXX)" />
-                            <div id="message" class="message" style="display: none;"></div>
-                            <button id="activateBtn" class="feature-button">
-                                <i class="codicon codicon-check"></i>
-                                Activate License
-                            </button>
-                        </div>
+                        <input type="text" id="licenseKey" class="license-input" 
+                               placeholder="Enter your license key (XXXX-XXXX-XXXX-XXXX)" />
+                        <div id="message" class="message" style="display: none;"></div>
+                        <button id="activateBtn" class="feature-button">
+                            <span class="icon">$(check)</span>
+                            Activate License
+                        </button>
                     </div>
                     <div id="subscriptionInfo" class="subscription-info" style="display: none;">
                         <div class="info-row">
@@ -236,35 +216,20 @@ export class SubscriptionPanel implements vscode.WebviewViewProvider {
                             <span class="info-value" id="statusBadge"></span>
                         </div>
                         <div class="info-row">
-                            <span class="info-label">Product:</span>
-                            <span class="info-value" id="productName"></span>
-                        </div>
-                        <div class="info-row">
-                            <span class="info-label">Customer:</span>
-                            <span class="info-value" id="customerName"></span>
-                        </div>
-                        <div class="info-row">
-                            <span class="info-label">Email:</span>
-                            <span class="info-value" id="customerEmail"></span>
-                        </div>
-                        <div class="info-row">
                             <span class="info-label">Active Since:</span>
                             <span class="info-value" id="activeSince"></span>
+                        </div>
+                        <div class="info-row">
+                            <span class="info-label">License Key:</span>
+                            <span class="info-value" id="licenseKeyDisplay"></span>
                         </div>
                         <div class="info-row">
                             <span class="info-label">Valid Until:</span>
                             <span class="info-value" id="validUntil"></span>
                         </div>
-                        <div class="info-row">
-                            <span class="info-label">Activations:</span>
-                            <span class="info-value" id="activationUsage"></span>
-                        </div>
-                        <div class="usage-bar">
-                            <div id="usageBarFill" class="usage-bar-fill"></div>
-                        </div>
-                        <div style="margin-top: 15px;">
+                        <div style="grid-column: span 2; margin-top: 10px;">
                             <button id="deactivateBtn" class="feature-button">
-                                <i class="codicon codicon-trash"></i>
+                                <span class="icon">$(trash)</span>
                                 Deactivate License
                             </button>
                         </div>
@@ -273,32 +238,32 @@ export class SubscriptionPanel implements vscode.WebviewViewProvider {
 
                 <div class="section">
                     <div class="header">
-                        <i class="codicon codicon-tools"></i>
+                        <span class="icon">$(tools)</span>
                         <h2>Features</h2>
                     </div>
                     <div id="features">
                         <button class="feature-button" onclick="runFeature('extension.freeSample')">
-                            <i class="codicon codicon-text-size"></i>
+                            <span class="icon">$(text-size)</span>
                             Word Count
                             <span class="status-badge free">Free</span>
                         </button>
                         <button class="feature-button premium" onclick="runFeature('extension.premiumFeature')">
-                            <i class="codicon codicon-bracket-dot"></i>
+                            <span class="icon">$(bracket)</span>
                             Highlight Brackets
                             <span class="status-badge premium">Premium</span>
                         </button>
                         <button class="feature-button premium" onclick="runFeature('extension.premiumHighlightKeywords')">
-                            <i class="codicon codicon-symbol-keyword"></i>
+                            <span class="icon">$(symbol-keyword)</span>
                             Highlight Keywords
                             <span class="status-badge premium">Premium</span>
                         </button>
                         <button class="feature-button premium" onclick="runFeature('extension.encodeBase64')">
-                            <i class="codicon codicon-arrow-right"></i>
+                            <span class="icon">$(arrow-right)</span>
                             Encode Base64
                             <span class="status-badge premium">Premium</span>
                         </button>
                         <button class="feature-button premium" onclick="runFeature('extension.decodeBase64')">
-                            <i class="codicon codicon-arrow-left"></i>
+                            <span class="icon">$(arrow-left)</span>
                             Decode Base64
                             <span class="status-badge premium">Premium</span>
                         </button>
@@ -333,50 +298,30 @@ export class SubscriptionPanel implements vscode.WebviewViewProvider {
                     switch (message.type) {
                         case 'update-state':
                             const state = message.state;
-                            if (state.isLicensed && state.data) {
-                                document.getElementById('activationForm').style.display = 'none';
-                                document.getElementById('subscriptionInfo').style.display = 'grid';
+                            if (state.isLicensed) {
+                                licenseInput.value = state.licenseKey;
+                                licenseInput.disabled = true;
+                                activateBtn.style.display = 'none';
+                                subscriptionInfo.style.display = 'grid';
                                 
-                                // Access the correct data structure
-                                const meta = state.data.meta;
-                                const licenseKey = state.data.license_key;
-
                                 document.getElementById('statusBadge').innerHTML = 
                                     '<span class="status-badge premium">Premium Active</span>';
-                                document.getElementById('productName').textContent = 
-                                    meta?.product_name || 'N/A';
-                                document.getElementById('customerName').textContent = 
-                                    meta?.customer_name || 'N/A';
-                                document.getElementById('customerEmail').textContent = 
-                                    meta?.customer_email || 'N/A';
                                 document.getElementById('activeSince').textContent = 
-                                    new Date(state.lastValidated).toLocaleDateString(undefined, {
-                                        year: 'numeric',
-                                        month: 'long',
-                                        day: 'numeric'
-                                    });
+                                    new Date(state.lastValidated).toLocaleDateString();
+                                document.getElementById('licenseKeyDisplay').textContent = 
+                                    state.licenseKey;
                                 document.getElementById('validUntil').textContent = 
                                     state.validUntil ? new Date(state.validUntil).toLocaleDateString() : 'Perpetual';
-
-                                // Update activation usage
-                                const usage = licenseKey?.activation_usage || 0;
-                                const limit = licenseKey?.activation_limit || 1;
-                                document.getElementById('activationUsage').textContent = 
-                                    \`\${usage} of \${limit} activations\`;
-                                
-                                // Update usage bar
-                                const percentage = (usage / limit) * 100;
-                                document.getElementById('usageBarFill').style.width = 
-                                    \`\${Math.min(percentage, 100)}%\`;
 
                                 // Enable premium features
                                 document.querySelectorAll('.feature-button.premium').forEach(btn => {
                                     btn.disabled = false;
                                 });
                             } else {
-                                document.getElementById('activationForm').style.display = 'block';
-                                document.getElementById('subscriptionInfo').style.display = 'none';
-                                document.getElementById('licenseKey').value = '';
+                                licenseInput.value = '';
+                                licenseInput.disabled = false;
+                                activateBtn.style.display = 'block';
+                                subscriptionInfo.style.display = 'none';
 
                                 // Disable premium features
                                 document.querySelectorAll('.feature-button.premium').forEach(btn => {
