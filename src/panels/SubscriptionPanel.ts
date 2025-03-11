@@ -75,6 +75,9 @@ export class SubscriptionPanel implements vscode.WebviewViewProvider {
         return `<!DOCTYPE html>
         <html>
         <head>
+        <link href="
+https://cdn.jsdelivr.net/npm/vscode-codicons@0.0.17/dist/codicon.min.css
+" rel="stylesheet">
             <style>
                 body { 
                     padding: 15px;
@@ -115,13 +118,14 @@ export class SubscriptionPanel implements vscode.WebviewViewProvider {
                     background: var(--vscode-input-background);
                 }
                 .subscription-info {
-                    display: grid;
+                    display:inline-block;
+                    /*display: grid;
                     grid-template-columns: auto 1fr;
-                    gap: 10px;
+                    gap: 10px;*/
                     align-items: center;
                 }
                 .info-row {
-                    display: contents;
+                    display: flow;
                 }
                 .info-label {
                     color: var(--vscode-descriptionForeground);
@@ -170,7 +174,8 @@ export class SubscriptionPanel implements vscode.WebviewViewProvider {
                     color: var(--vscode-inputValidation-infoForeground);
                 }
                 .status-badge.premium {
-                    background: var(--vscode-inputValidation-warningBackground);
+                    background: #0b601a;
+                   /* background: var(--vscode-inputValidation-warningBackground);*/
                     color: var(--vscode-inputValidation-warningForeground);
                 }
                 .divider {
@@ -192,36 +197,384 @@ export class SubscriptionPanel implements vscode.WebviewViewProvider {
                     background: var(--vscode-inputValidation-infoBackground);
                     color: var(--vscode-inputValidation-infoForeground);
                 }
+                .feature-group {
+                    margin-bottom: 20px;
+                }
+
+                .feature-group-title {
+                    font-size: 12px;
+                    color: var(--vscode-descriptionForeground);
+                    margin-bottom: 8px;
+                    text-transform: uppercase;
+                    letter-spacing: 0.1em;
+                }
+
+                .license-stats {
+                    display: grid;
+                    grid-template-columns: repeat(3, 1fr);
+                    gap: 10px;
+                    margin: 15px 0;
+                }
+
+                .stat-item {
+                    background: var(--vscode-editor-background);
+                    padding: 10px;
+                    border-radius: 4px;
+                    text-align: center;
+                }
+
+                .stat-value {
+                    font-size: 20px;
+                    font-weight: 500;
+                    color: var(--vscode-foreground);
+                }
+
+                .stat-label {
+                    font-size: 11px;
+                    color: var(--vscode-descriptionForeground);
+                    margin-top: 4px;
+                }
+
+                .copy-button {
+                    padding: 2px 8px;
+                    background: var(--vscode-button-secondaryBackground);
+                    color: var(--vscode-button-secondaryForeground);
+                    border: none;
+                    border-radius: 2px;
+                    cursor: pointer;
+                    font-size: 11px;
+                }
+
+                .copy-button:hover {
+                    background: var(--vscode-button-secondaryHoverBackground);
+                }
+
+                .loading {
+                    position: relative;
+                    opacity: 0.7;
+                    pointer-events: none;
+                }
+
+                .loading::after {
+                    content: '';
+                    position: absolute;
+                    top: 0;
+                    left: 0;
+                    width: 100%;
+                    height: 100%;
+                    background: rgba(0, 0, 0, 0.1);
+                    border-radius: 3px;
+                }
+
+                @keyframes pulse {
+                    0% { opacity: 1; }
+                    50% { opacity: 0.5; }
+                    100% { opacity: 1; }
+                }
+
+                .loading-text {
+                    animation: pulse 1.5s infinite;
+                }
+
+                .health-indicator {
+                    display: flex;
+                    align-items: center;
+                    gap: 8px;
+                    margin-top: 15px;
+                    padding: 8px;
+                    border-radius: 4px;
+                    background: var(--vscode-editor-background);
+                }
+
+                .health-dot {
+                    width: 8px;
+                    height: 8px;
+                    border-radius: 50%;
+                    background: var(--vscode-charts-green);
+                }
+
+                .health-dot.warning {
+                    background: var(--vscode-charts-yellow);
+                }
+
+                .health-dot.error {
+                    background: var(--vscode-charts-red);
+                }
+
+                .quick-actions {
+                    display: flex;
+                    gap: 8px;
+                    margin: 15px 0;
+                }
+
+                .quick-action-btn {
+                    padding: 4px 8px;
+                    background: var(--vscode-button-secondaryBackground);
+                    color: var(--vscode-button-secondaryForeground);
+                    border: none;
+                    border-radius: 3px;
+                    cursor: pointer;
+                    font-size: 11px;
+                    display: flex;
+                    align-items: center;
+                    gap: 4px;
+                }
+
+                .quick-action-btn:hover {
+                    background: var(--vscode-button-secondaryHoverBackground);
+                }
+
+                .usage-chart {
+                    height: 40px;
+                    background: var(--vscode-input-background);
+                    border-radius: 3px;
+                    overflow: hidden;
+                    margin: 10px 0;
+                }
+
+                .usage-bar {
+                    height: 100%;
+                    background: var(--vscode-progressBar-background);
+                    transition: width 0.3s ease;
+                }
+
+                @keyframes shimmer {
+                    0% { opacity: 1; }
+                    50% { opacity: 0.5; }
+                    100% { opacity: 1; }
+                }
+
+                .syncing {
+                    animation: shimmer 2s infinite;
+                }
+
+                .tooltip {
+                    position: relative;
+                    display: inline-block;
+                }
+
+                .tooltip:hover::after {
+                    content: attr(data-tooltip);
+                    position: absolute;
+                    bottom: 100%;
+                    left: 50%;
+                    transform: translateX(-50%);
+                    padding: 4px 8px;
+                    background: var(--vscode-editor-background);
+                    border: 1px solid var(--vscode-widget-border);
+                    border-radius: 3px;
+                    font-size: 11px;
+                    white-space: nowrap;
+                    z-index: 1000;
+                }
+
+                /* Add styles for subscription tiers */
+                .pricing-tier {
+                    padding: 10px;
+                    border-radius: 4px;
+                    margin: 10px 0;
+                    border-left: 3px solid var(--vscode-textLink-foreground);
+                }
+
+                .tier-header {
+                    display: flex;
+                    justify-content: space-between;
+                    align-items: center;
+                    margin-bottom: 8px;
+                }
+
+                .tier-name {
+                    font-size: 14px;
+                    font-weight: 600;
+                }
+
+                .tier-price {
+                    font-size: 12px;
+                    opacity: 0.8;
+                }
+
+                .feature-list {
+                    list-style: none;
+                    padding: 0;
+                    margin: 0;
+                }
+
+                .feature-list li {
+                    display: flex;
+                    align-items: center;
+                    gap: 8px;
+                    margin-bottom: 4px;
+                    font-size: 12px;
+                }
+
+                .feature-list .icon {
+                    color: var(--vscode-gitDecoration-addedResourceForeground);
+                }
+
+                /* Enhanced usage bars */
+                .usage-metric {
+                    margin: 15px 0;
+                }
+
+                .usage-header {
+                    display: flex;
+                    justify-content: space-between;
+                    align-items: center;
+                    margin-bottom: 4px;
+                }
+
+                .usage-label {
+                    font-size: 11px;
+                    color: var(--vscode-descriptionForeground);
+                }
+
+                .usage-value {
+                    font-size: 11px;
+                    font-weight: 500;
+                }
+
+                .usage-bar-bg {
+                    height: 4px;
+                    background: var(--vscode-input-background);
+                    border-radius: 2px;
+                    overflow: hidden;
+                }
+
+                .usage-bar-fill {
+                    height: 100%;
+                    background: var(--vscode-progressBar-background);
+                    transition: width 0.3s ease;
+                }
+
+                .usage-bar-fill.warning {
+                    background: var(--vscode-notificationsWarningIcon-foreground);
+                }
+
+                .usage-bar-fill.error {
+                    background: var(--vscode-notificationsErrorIcon-foreground);
+                }
+
+                /* Enhanced notifications */
+                .notification {
+                    display: flex;
+                    align-items: center;
+                    gap: 8px;
+                    padding: 8px 12px;
+                    margin: 10px 0;
+                    border-radius: 4px;
+                    font-size: 12px;
+                    animation: slideIn 0.3s ease;
+                }
+
+                .notification.warning {
+                    background: var(--vscode-inputValidation-warningBackground);
+                    color: var(--vscode-inputValidation-warningForeground);
+                }
+
+                .notification.error {
+                    background: var(--vscode-inputValidation-errorBackground);
+                    color: var(--vscode-inputValidation-errorForeground);
+                }
+
+                @keyframes slideIn {
+                    from { transform: translateY(-10px); opacity: 0; }
+                    to { transform: translateY(0); opacity: 1; }
+                }
+
+                /* Enhanced buttons */
+                .button-row {
+                    display: flex;
+                    gap: 8px;
+                    margin: 15px 0;
+                }
+
+                .button-row button {
+                    flex: 1;
+                }
+
+                .icon-button {
+                    display: inline-flex;
+                    align-items: center;
+                    gap: 6px;
+                    padding: 4px 8px;
+                    border: none;
+                    border-radius: 3px;
+                    font-size: 11px;
+                    cursor: pointer;
+                    background: var(--vscode-button-secondaryBackground);
+                    color: var(--vscode-button-secondaryForeground);
+                }
+
+                .icon-button:hover {
+                    background: var(--vscode-button-secondaryHoverBackground);
+                }
             </style>
         </head>
         <body>
             <div class="container">
                 <div class="section">
                     <div class="header">
-                        <span class="icon">$(key)</span>
+                        <span class="icon codicon codicon-key"></span>
                         <h2>License Management</h2>
+                        <div class="info-row">
+                            <span class="info-label">Status:</span>
+                            <span class="info-value" id="statusBadge"></span>
+                        </div>
                     </div>
                     <div id="licenseSection">
                         <input type="text" id="licenseKey" class="license-input" 
                                placeholder="Enter your license key (XXXX-XXXX-XXXX-XXXX)" />
                         <div id="message" class="message" style="display: none;"></div>
                         <button id="activateBtn" class="feature-button">
-                            <span class="icon">$(check)</span>
+                            <span class="icon codicon codicon-check"></span>
                             Activate License
                         </button>
                     </div>
                     <div id="subscriptionInfo" class="subscription-info" style="display: none;">
-                        <div class="info-row">
-                            <span class="info-label">Status:</span>
-                            <span class="info-value" id="statusBadge"></span>
+                        
+                        <div class="quick-actions">
+                            <button class="quick-action-btn" onclick="renewLicense()" data-tooltip="Extend your subscription">
+                                <span class="icon codicon codicon-refresh"></span> Renew
+                            </button>
+                            <button class="quick-action-btn" onclick="viewInvoices()" data-tooltip="View billing history">
+                                <span class="icon codicon codicon-history"></span> Billing
+                            </button>
+                            <button class="quick-action-btn" onclick="reportIssue()" data-tooltip="Get support">
+                                <span class="icon codicon codicon-question"></span> Support
+                            </button>
                         </div>
+
+                        <div class="health-indicator" id="licenseHealth">
+                            <div class="health-dot"></div>
+                            <span>License Status: Healthy</span>
+                        </div>
+
+                        <div class="license-stats">
+                            <div class="stat-item">
+                                <div class="stat-value" id="daysRemaining">--</div>
+                                <div class="stat-label">Days Remaining</div>
+                            </div>
+                            <div class="stat-item">
+                                <div class="stat-value" id="activationCount">--</div>
+                                <div class="stat-label">Activations Used</div>
+                            </div>
+                            <div class="stat-item tooltip" data-tooltip="Total API calls this month">
+                                <div class="stat-value" id="apiUsage">0</div>
+                                <div class="stat-label">API Usage</div>
+                            </div>
+                        </div>
+
+                        
                         <div class="info-row">
                             <span class="info-label">Active Since:</span>
                             <span class="info-value" id="activeSince"></span>
                         </div>
                         <div class="info-row">
                             <span class="info-label">License Key:</span>
-                            <span class="info-value" id="licenseKeyDisplay"></span>
+                            <div style="display: flex; align-items: center; gap: 8px;">
+                                <span class="info-value" id="licenseKeyDisplay"></span>
+                                <button class="copy-button" onclick="copyLicenseKey()">Copy</button>
+                            </div>
                         </div>
                         <div class="info-row">
                             <span class="info-label">Valid Until:</span>
@@ -229,8 +582,60 @@ export class SubscriptionPanel implements vscode.WebviewViewProvider {
                         </div>
                         <div style="grid-column: span 2; margin-top: 10px;">
                             <button id="deactivateBtn" class="feature-button">
-                                <span class="icon">$(trash)</span>
+                                <span class="icon codicon codicon-trash"></span>
                                 Deactivate License
+                            </button>
+                        </div>
+
+                        <div class="usage-section">
+                            <div class="info-label">Activation Usage</div>
+                            <div class="usage-chart">
+                                <div class="usage-bar" id="usageBar"></div>
+                            </div>
+                            <div style="display: flex; justify-content: space-between; font-size: 11px;">
+                                <span id="usageText">0/0 activations used</span>
+                                <span id="usagePercent">0%</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="section">
+                    <div class="header">
+                        <span class="icon codicon codicon-tools"></span>
+                        <h2>Features</h2>
+                    </div>
+                    <div id="features">
+                        <div class="feature-group">
+                            <div class="feature-group-title">Free Features</div>
+                            <button class="feature-button" onclick="runFeature('extension.freeSample')">
+                                <span class="icon codicon codicon-text-size"></span>
+                                Word Count
+                                <span class="status-badge free">Free</span>
+                            </button>
+                        </div>
+
+                        <div class="feature-group">
+                            <div class="feature-group-title">Premium Features</div>
+                            <button class="feature-button premium" onclick="runFeature('extension.premiumFeature')">
+                                <span class="icon codicon codicon-bracket-dot"></span>
+                                Highlight Brackets
+                                <span class="status-badge premium">Premium</span>
+                            </button>
+                            <button class="feature-button premium" onclick="runFeature('extension.premiumHighlightKeywords')">
+                                <span class="icon codicon codicon-symbol-keyword"></span>
+                                Highlight Keywords
+                                <span class="status-badge premium">Premium</span>
+                            </button>
+                            <button class="feature-button premium" onclick="runFeature('extension.encodeBase64')">
+                                <span class="icon codicon codicon-arrow-right"></span>
+                                Encode Base64
+                                <span class="status-badge premium">Premium</span>
+                            </button>
+                            <button class="feature-button premium" onclick="runFeature('extension.decodeBase64')">
+                                <span class="icon codicon codicon-arrow-left"></span>
+                                Decode Base64
+                                <span class="status-badge premium">Premium</span>
                             </button>
                         </div>
                     </div>
@@ -238,35 +643,49 @@ export class SubscriptionPanel implements vscode.WebviewViewProvider {
 
                 <div class="section">
                     <div class="header">
-                        <span class="icon">$(tools)</span>
-                        <h2>Features</h2>
+                        <span class="icon codicon codicon-graph"></span>
+                        <h2>Usage Metrics</h2>
                     </div>
-                    <div id="features">
-                        <button class="feature-button" onclick="runFeature('extension.freeSample')">
-                            <span class="icon">$(text-size)</span>
-                            Word Count
-                            <span class="status-badge free">Free</span>
+                    
+                    <div class="usage-metric">
+                        <div class="usage-header">
+                            <span class="usage-label">API Calls (This Month)</span>
+                            <span class="usage-value" id="apiCallsValue">0/1000</span>
+                        </div>
+                        <div class="usage-bar-bg">
+                            <div class="usage-bar-fill" id="apiCallsBar" style="width: 0%"></div>
+                        </div>
+                    </div>
+
+                    <div class="usage-metric">
+                        <div class="usage-header">
+                            <span class="usage-label">Storage Used</span>
+                            <span class="usage-value" id="storageValue">0/100 MB</span>
+                        </div>
+                        <div class="usage-bar-bg">
+                            <div class="usage-bar-fill" id="storageBar" style="width: 0%"></div>
+                        </div>
+                    </div>
+
+                    <div class="button-row">
+                        <button class="icon-button" onclick="refreshMetrics()">
+                            <span class="icon codicon codicon-sync"></span>
+                            Refresh
                         </button>
-                        <button class="feature-button premium" onclick="runFeature('extension.premiumFeature')">
-                            <span class="icon">$(bracket)</span>
-                            Highlight Brackets
-                            <span class="status-badge premium">Premium</span>
+                        <button class="icon-button" onclick="showUsageDetails()">
+                            <span class="icon codicon codicon-output"></span>
+                            Details
                         </button>
-                        <button class="feature-button premium" onclick="runFeature('extension.premiumHighlightKeywords')">
-                            <span class="icon">$(symbol-keyword)</span>
-                            Highlight Keywords
-                            <span class="status-badge premium">Premium</span>
-                        </button>
-                        <button class="feature-button premium" onclick="runFeature('extension.encodeBase64')">
-                            <span class="icon">$(arrow-right)</span>
-                            Encode Base64
-                            <span class="status-badge premium">Premium</span>
-                        </button>
-                        <button class="feature-button premium" onclick="runFeature('extension.decodeBase64')">
-                            <span class="icon">$(arrow-left)</span>
-                            Decode Base64
-                            <span class="status-badge premium">Premium</span>
-                        </button>
+                    </div>
+                </div>
+
+                <div class="section">
+                    <div class="header">
+                        <span class="icon codicon codicon-record"></span>
+                        <h2>Activity Log</h2>
+                    </div>
+                    <div id="activityLog" class="activity-log">
+                        <!-- Activity items will be inserted here -->
                     </div>
                 </div>
             </div>
@@ -277,6 +696,7 @@ export class SubscriptionPanel implements vscode.WebviewViewProvider {
                 const activateBtn = document.getElementById('activateBtn');
                 const deactivateBtn = document.getElementById('deactivateBtn');
                 const subscriptionInfo = document.getElementById('subscriptionInfo');
+                const licenseSection = document.getElementById('licenseSection');
 
                 activateBtn.addEventListener('click', () => {
                     vscode.postMessage({ 
@@ -293,6 +713,56 @@ export class SubscriptionPanel implements vscode.WebviewViewProvider {
                     vscode.postMessage({ type: 'run-feature', feature });
                 }
 
+                function copyLicenseKey() {
+                    const licenseKey = document.getElementById('licenseKeyDisplay').textContent;
+                    navigator.clipboard.writeText(licenseKey).then(() => {
+                        const button = event.target;
+                        button.textContent = 'Copied!';
+                        setTimeout(() => {
+                            button.textContent = 'Copy';
+                        }, 2000);
+                    });
+                }
+
+                function calculateDaysRemaining(validUntil) {
+                    if (!validUntil) return 'Perpetual';
+                    const now = new Date();
+                    const expiryDate = new Date(validUntil);
+                    const days = Math.ceil((expiryDate - now) / (1000 * 60 * 60 * 24));
+                    return days > 0 ? days.toString() : '0';
+                }
+
+                function updateUsageBar(used, limit) {
+                    const percent = (used / limit) * 100;
+                    document.getElementById('usageBar').style.width = \`\${percent}%\`;
+                    document.getElementById('usageText').textContent = \`\${used}/\${limit} activations used\`;
+                    document.getElementById('usagePercent').textContent = \`\${Math.round(percent)}%\`;
+
+                    // Update health indicator
+                    const healthDot = document.querySelector('.health-dot');
+                    const healthText = document.querySelector('.health-indicator span');
+                    
+                    if (percent > 90) {
+                        healthDot.className = 'health-dot error';
+                        healthText.textContent = 'License Status: Critical';
+                    } else if (percent > 70) {
+                        healthDot.className = 'health-dot warning';
+                        healthText.textContent = 'License Status: Warning';
+                    }
+                }
+
+                function renewLicense() {
+                    vscode.postMessage({ type: 'renew-license' });
+                }
+
+                function viewInvoices() {
+                    vscode.postMessage({ type: 'view-invoices' });
+                }
+
+                function reportIssue() {
+                    vscode.postMessage({ type: 'report-issue' });
+                }
+
                 window.addEventListener('message', event => {
                     const message = event.data;
                     switch (message.type) {
@@ -302,7 +772,8 @@ export class SubscriptionPanel implements vscode.WebviewViewProvider {
                                 licenseInput.value = state.licenseKey;
                                 licenseInput.disabled = true;
                                 activateBtn.style.display = 'none';
-                                subscriptionInfo.style.display = 'grid';
+                                subscriptionInfo.style.display = 'inline-block';
+                                licenseSection.style.display = 'none';
                                 
                                 document.getElementById('statusBadge').innerHTML = 
                                     '<span class="status-badge premium">Premium Active</span>';
@@ -317,11 +788,26 @@ export class SubscriptionPanel implements vscode.WebviewViewProvider {
                                 document.querySelectorAll('.feature-button.premium').forEach(btn => {
                                     btn.disabled = false;
                                 });
+
+                                // Update statistics
+                                document.getElementById('daysRemaining').textContent = 
+                                    calculateDaysRemaining(state.validUntil);
+                                document.getElementById('activationCount').textContent = 
+                                    state.data?.license_key?.activation_usage || '1';
+
+                                if (state.isLicensed && state.data?.license_key) {
+                                    const { activation_limit, activation_usage } = state.data.license_key;
+                                    updateUsageBar(activation_usage, activation_limit);
+                                    
+                                    document.getElementById('apiUsage').textContent = 
+                                        state.data.meta?.api_calls_count || '0';
+                                }
                             } else {
                                 licenseInput.value = '';
                                 licenseInput.disabled = false;
                                 activateBtn.style.display = 'block';
                                 subscriptionInfo.style.display = 'none';
+                                licenseSection.style.display = 'block';
 
                                 // Disable premium features
                                 document.querySelectorAll('.feature-button.premium').forEach(btn => {
@@ -342,6 +828,66 @@ export class SubscriptionPanel implements vscode.WebviewViewProvider {
                             break;
                     }
                 });
+
+                // Add loading state handlers
+                function setLoading(isLoading) {
+                    const buttons = document.querySelectorAll('.feature-button');
+                    buttons.forEach(btn => {
+                        if (isLoading) {
+                            btn.classList.add('loading');
+                        } else {
+                            btn.classList.remove('loading');
+                        }
+                    });
+                }
+
+                // Add auto-refresh for real-time updates
+                setInterval(() => {
+                    vscode.postMessage({ type: 'refresh-state' });
+                }, 30000); // Refresh every 30 seconds
+
+                function refreshMetrics() {
+                    setLoading(true);
+                    vscode.postMessage({ type: 'refresh-metrics' });
+                }
+
+                function showUsageDetails() {
+                    vscode.postMessage({ type: 'show-usage-details' });
+                }
+
+                function updateMetrics(metrics) {
+                    const apiCallsBar = document.getElementById('apiCallsBar');
+                    const apiCallsValue = document.getElementById('apiCallsValue');
+                    const storageBar = document.getElementById('storageBar');
+                    const storageValue = document.getElementById('storageValue');
+
+                    // Update API calls
+                    const apiPercent = (metrics.apiCalls.used / metrics.apiCalls.limit) * 100;
+                    apiCallsBar.style.width = \`\${apiPercent}%\`;
+                    apiCallsValue.textContent = \`\${metrics.apiCalls.used}/\${metrics.apiCalls.limit}\`;
+                    
+                    if (apiPercent > 90) {
+                        apiCallsBar.classList.add('error');
+                    } else if (apiPercent > 70) {
+                        apiCallsBar.classList.add('warning');
+                    }
+
+                    // Update storage
+                    const storagePercent = (metrics.storage.used / metrics.storage.limit) * 100;
+                    storageBar.style.width = \`\${storagePercent}%\`;
+                    storageValue.textContent = \`\${metrics.storage.used}/\${metrics.storage.limit} MB\`;
+                }
+
+                function addActivityItem(activity) {
+                    const logContainer = document.getElementById('activityLog');
+                    const item = document.createElement('div');
+                    item.className = 'activity-item';
+                    item.innerHTML = \`
+                        <div class="activity-time">\${new Date(activity.timestamp).toLocaleTimeString()}</div>
+                        <div class="activity-message">\${activity.message}</div>
+                    \`;
+                    logContainer.insertBefore(item, logContainer.firstChild);
+                }
             </script>
         </body>
         </html>`;
