@@ -139,7 +139,26 @@
                 "command": "extension.decodeBase64",
                 "title": "Decode from Base64 (Premium Feature)"
             }
-        ]
+        ],
+        "viewsContainers": {
+            "activitybar": [
+                {
+                    "id": "feature-rich-panel",
+                    "title": "Feature Rich",
+                    "icon": "$(star)"
+                }
+            ]
+        },
+        "views": {
+            "feature-rich-panel": [
+                {
+                    "id": "featureRichSubscription",
+                    "name": "Subscription",
+                    "icon": "$(star)",
+                    "type": "webview"
+                }
+            ]
+        }
     },
     "dependencies": {
         "axios": "^1.4.0",

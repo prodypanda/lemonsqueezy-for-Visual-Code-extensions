@@ -17,6 +17,10 @@ export class LicenseManager {
     private isLicensed: boolean = false;            // Is this a paid user?
     private statusBarItem: vscode.StatusBarItem;    // The button in VS Code's status bar
 
+    // Add event emitter at the top of the class
+    private readonly _onDidChangeLicense = new vscode.EventEmitter<void>();
+    public readonly onLicenseChange = this._onDidChangeLicense.event;
+
     // API endpoints from LemonSqueezy
     private readonly API = {
         validate: 'https://api.lemonsqueezy.com/v1/licenses/validate',
@@ -414,6 +418,9 @@ export class LicenseManager {
             this.statusBarItem.color = "#3ba1eb"
         }
 
+        // Emit license change event after updating status
+        this._onDidChangeLicense.fire();
+
         this.ensureStatusBarVisibility();
     }
 
@@ -715,5 +722,7 @@ export class LicenseManager {
         if (this.statusBarItem) {
             this.statusBarItem.dispose();
         }
+        // Dispose the event emitter
+        this._onDidChangeLicense.dispose();
     }
 }
