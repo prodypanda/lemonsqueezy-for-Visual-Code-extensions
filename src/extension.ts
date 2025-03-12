@@ -29,16 +29,8 @@ const PREMIUM_DECORATIONS = {
     })
 };
 
-const COMMAND_TIMEOUT = 30000; // 30 seconds
 
-function withTimeout<T>(promise: Promise<T>, timeout: number): Promise<T> {
-    return Promise.race([
-        promise,
-        new Promise<T>((_, reject) =>
-            setTimeout(() => reject(new Error('Operation timed out')), timeout)
-        )
-    ]);
-}
+
 
 /**
  * Example Premium Feature: Base64 Encoding

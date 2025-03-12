@@ -37,8 +37,7 @@ export class LicenseManager {
     private readonly MIN_VALIDATION_INTERVAL = 5 * 60 * 1000; // 5 minutes
 
     private retryAttempts = 0;
-    private readonly MAX_RETRIES = 3;
-    private readonly RETRY_DELAY = 5000; // 5 seconds
+
 
     private config: LicenseConfig = {
         maxRetries: 3,
@@ -709,25 +708,7 @@ export class LicenseManager {
         this.offlineMode = await this.context.globalState.get('offlineMode') || this.offlineMode;
     }
 
-    private getCachedResponse<T>(cache: { [key: string]: CacheEntry<T> }, key: string): T | null {
-        const entry = cache[key];
-        if (!entry) return null;
-        if (Date.now() > entry.expiry) {
-            delete cache[key];
-            return null;
-        }
-        return entry.data;
-    }
 
-    private setCachedResponse<T>(cache: { [key: string]: CacheEntry<T> }, key: string, data: T): void {
-        const duration = this.config.apiCache.duration * 60 * 1000;
-        cache[key] = {
-            data,
-            timestamp: Date.now(),
-            expiry: Date.now() + duration
-        };
-        this.context.globalState.update('apiCache', this.apiCache);
-    }
 
     /**
      * Make API request with proper headers and error handling
