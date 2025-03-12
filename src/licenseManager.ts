@@ -3,6 +3,7 @@ import axios from 'axios';
 import * as vscode from 'vscode';
 import { v4 as uuidv4 } from 'uuid';
 import { ValidationResponse, LicenseState, LicenseConfig, ExtensionError, ErrorTrackingConfig, ApiCache, CacheEntry, OfflineMode, LemonSqueezyResponse } from './types';
+import { OfflineModeManager } from './offline/OfflineModeManager';
 
 /**
  * LemonSqueezy License Manager for VS Code Extensions
@@ -103,6 +104,7 @@ export class LicenseManager {
     };
 
     private apiData?: LemonSqueezyResponse;
+    private offlineModeManager: OfflineModeManager;
 
     /**
      * Sets up the license manager when it's first created
@@ -140,6 +142,7 @@ export class LicenseManager {
         this.startErrorCleanup();
         this.initializeCache();
         this.refreshLicenseState().catch(console.error);
+        this.offlineModeManager = OfflineModeManager.getInstance(context);
     }
 
     /**
@@ -572,8 +575,14 @@ export class LicenseManager {
      */
     public async validateLicense(): Promise<boolean> {
         // Check offline mode first
-        if (this.offlineMode.enabled) {
-            return this.handleOfflineValidation();
+        if (this.offlineModeManager.isEnabled() &&
+            this.offlineModeManager.isOfflineValid(this.config)) {
+            const cachedState = this.offlineModeManager.getCachedLicenseState();
+            if (cachedState) {
+                this.isLicensed = cachedState.isLicensed;
+                this.updateStatusBarItem();
+                return cachedState.isLicensed;
+            }
         }
 
         return this.withRetry(async () => {

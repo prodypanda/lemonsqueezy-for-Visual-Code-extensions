@@ -1,6 +1,14 @@
-# LemonSqueezy License API
+# Blueprint: VS Code Extension with Free/Premium Features using LemonSqueezy
 
-A comprehensive guide to integrating with the LemonSqueezy License API for software license management.
+This is a comprehensive blueprint for creating VS Code extensions with a freemium model - offering both free and premium (paid) features. It integrates with LemonSqueezy's License API for payment processing and license management.
+
+## Purpose
+
+This blueprint helps developers:
+1. Create VS Code extensions with a freemium business model
+2. Integrate LemonSqueezy for payment processing and license management
+3. Implement secure offline usage capabilities
+4. Handle license activation, validation, and deactivation
 
 ## Table of Contents
 
