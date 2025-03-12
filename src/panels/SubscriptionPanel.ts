@@ -72,12 +72,13 @@ export class SubscriptionPanel implements vscode.WebviewViewProvider {
     }
 
     private _getHtmlForWebview() {
+        const codiconsUri = vscode.Uri.joinPath(this._extensionUri, 'node_modules', '@vscode/codicons', 'dist', 'codicon.css');
+        const codiconPath = this._view?.webview.asWebviewUri(codiconsUri);
+
         return `<!DOCTYPE html>
         <html>
         <head>
-        <link href="
-https://cdn.jsdelivr.net/npm/vscode-codicons@0.0.17/dist/codicon.min.css
-" rel="stylesheet">
+        <link href="${codiconPath}" rel="stylesheet">
             <style>
                 body { 
                     padding: 15px;
@@ -98,8 +99,10 @@ https://cdn.jsdelivr.net/npm/vscode-codicons@0.0.17/dist/codicon.min.css
                 .header {
                     display: flex;
                     align-items: center;
-                    gap: 10px;
+                    gap: 20px; /* Increased gap between header items */
                     margin-bottom: 15px;
+                    min-width: 0; /* Allow header to shrink */
+                    flex-wrap: nowrap; /* Prevent wrapping */
                 }
                 .header h2 {
                     margin: 0;
@@ -126,9 +129,16 @@ https://cdn.jsdelivr.net/npm/vscode-codicons@0.0.17/dist/codicon.min.css
                     animation: fadeIn 0.3s ease-out;
                 }
                 .info-row {
-                    display: flow;
+                    display: flex;
+                    align-items: center;
+                    gap: 8px;
+                    margin-bottom: 4px;
+                }
+                    .info-row-badge {
+                    display: block;
                 }
                 .info-label {
+                    min-width: 100px;  /* Fixed width for labels */
                     color: var(--vscode-descriptionForeground);
                     font-size: 12px;
                 }
@@ -147,7 +157,9 @@ https://cdn.jsdelivr.net/npm/vscode-codicons@0.0.17/dist/codicon.min.css
                     display: flex;
                     align-items: center;
                     gap: 8px;
-                    width: calc(100% - 24px); /* Adjust width to account for padding */
+                    width: 200px; /* Fixed width for feature buttons */
+                    margin-left: 0; /* Align to the left */
+                    margin-right: auto;
                     text-align: left;
                     transition: all 0.2s ease;
                     justify-content: space-between; /* This will space out the elements */
@@ -181,6 +193,7 @@ https://cdn.jsdelivr.net/npm/vscode-codicons@0.0.17/dist/codicon.min.css
                     border-radius: 10px;
                     font-size: 12px;
                     font-weight: 500;
+                    white-space: nowrap; /* Prevent badge text from wrapping */
                     animation: scaleIn 0.3s ease-out;
                 }
                 .status-badge.free {
@@ -413,7 +426,7 @@ https://cdn.jsdelivr.net/npm/vscode-codicons@0.0.17/dist/codicon.min.css
                     border: 1px solid var(--vscode-widget-border);
                     border-radius: 3px;
                     font-size: 11px;
-                    white-space: nowrap;
+                    white-space: nowrap; /* Prevent badge text from wrapping */
                     z-index: 1000;
                 }
 
@@ -613,6 +626,12 @@ https://cdn.jsdelivr.net/npm/vscode-codicons@0.0.17/dist/codicon.min.css
                     0% { transform: translateX(-100%); }
                     100% { transform: translateX(100%); }
                 }
+
+                #deactivateBtn {
+                    width: 200px; /* Fixed width */
+                    margin: 10px 0; /* Remove auto margin to align left */
+                    display: block;
+                }
             </style>
         </head>
         <body>
@@ -621,7 +640,7 @@ https://cdn.jsdelivr.net/npm/vscode-codicons@0.0.17/dist/codicon.min.css
                     <div class="header">
                         <span class="icon codicon codicon-key"></span>
                         <h2>License Management</h2>
-                        <div class="info-row">
+                        <div class="info-row info-row-badge">
                             <span class="info-label">Status:</span>
                             <span class="info-value" id="statusBadge"></span>
                         </div>
@@ -637,24 +656,40 @@ https://cdn.jsdelivr.net/npm/vscode-codicons@0.0.17/dist/codicon.min.css
                     </div>
                     <div id="subscriptionInfo" class="subscription-info" style="display: none;">
                         <div class="info-row">
-                            <span class="info-label">Active Since:</span>
-                            <span class="info-value" id="activeSince"></span>
+                            <span class="info-label">Product:</span>
+                            <span class="info-value" id="productName"></span>
                         </div>
+                        <div class="info-row">
+                            <span class="info-label">Customer Name:</span>
+                            <span class="info-value" id="customerName"></span>
+                        </div>
+                        <div class="info-row">
+                            <span class="info-label">Customer Email:</span>
+                            <span class="info-value" id="customerEmail"></span>
+                        </div>
+                        
                         <div class="info-row">
                             <span class="info-label">License Key:</span>
-                            <div style="display: flex; align-items: center; gap: 8px;">
-                                <span class="info-value" id="licenseKeyDisplay"></span>
-                                <button class="copy-button" onclick="copyLicenseKey()">Copy</button>
-                            </div>
-                        </div>
-                        <div class="info-row">
-                            <span class="info-label">Valid Until:</span>
-                            <span class="info-value" id="validUntil"></span>
+                            <span class="info-value" id="licenseKeyDisplay"></span>
+                            <button class="copy-button" onclick="copyLicenseKey()">Copy</button>
                         </div>
                         <div class="info-row">
                             <span class="info-label">Instance ID:</span>
                             <span class="info-value" id="instanceId"></span>
+                            <button class="copy-button" onclick="copyInstanceId()">Copy</button>
                         </div>
+
+                        
+                        <div class="info-row">
+                            <span class="info-label">Active Since:</span>
+                            <span class="info-value" id="activeSince"></span>
+                        </div>
+                        
+                        <div class="info-row">
+                            <span class="info-label">Valid Until:</span>
+                            <span class="info-value" id="validUntil"></span>
+                        </div>
+                        
 
                         <div class="license-stats">
                             <div class="stat-item">
@@ -698,7 +733,7 @@ https://cdn.jsdelivr.net/npm/vscode-codicons@0.0.17/dist/codicon.min.css
                         <div class="feature-group">
                             <div class="feature-group-title">Premium Features</div>
                             <button class="feature-button premium" onclick="runFeature('extension.premiumFeature')">
-                                <span class="icon codicon codicon-bracket-dot"></span>
+                                <span class="icon codicon codicon-bracket-error"></span>
                                 Highlight Brackets
                                 <span class="status-badge premium">Premium</span>
                             </button>
@@ -769,6 +804,30 @@ https://cdn.jsdelivr.net/npm/vscode-codicons@0.0.17/dist/codicon.min.css
                         });
                 }
 
+                function copyInstanceId() {
+                    const instanceId = document.getElementById('instanceId').textContent;
+                    const copyButton = event.target;
+                    
+                    copyButton.classList.add('copied');
+                    navigator.clipboard.writeText(instanceId)
+                        .then(() => {
+                            copyButton.textContent = '✓ Copied!';
+                            copyButton.classList.add('success-icon');
+                            setTimeout(() => {
+                                copyButton.textContent = 'Copy';
+                                copyButton.classList.remove('success-icon', 'copied');
+                            }, 2000);
+                        })
+                        .catch(() => {
+                            copyButton.textContent = '✕ Failed!';
+                            copyButton.classList.add('error');
+                            setTimeout(() => {
+                                copyButton.textContent = 'Copy';
+                                copyButton.classList.remove('error', 'copied');
+                            }, 2000);
+                        });
+                }
+
                 function calculateDaysRemaining(validUntil) {
                     if (!validUntil) return 'Perpetual';
                     const now = new Date();
@@ -807,7 +866,7 @@ https://cdn.jsdelivr.net/npm/vscode-codicons@0.0.17/dist/codicon.min.css
                                 licenseSection.style.display = 'none';
                                 
                                 document.getElementById('statusBadge').innerHTML = 
-                                    '<span class="status-badge premium">Premium Active</span>';
+                                    '<span class="status-badge premium">License Active</span>';
                                 document.getElementById('activeSince').textContent = 
                                     new Date(state.lastValidated).toLocaleDateString();
                                 document.getElementById('licenseKeyDisplay').textContent = 
@@ -840,6 +899,16 @@ https://cdn.jsdelivr.net/npm/vscode-codicons@0.0.17/dist/codicon.min.css
                                         document.getElementById('daysRemaining').textContent = 
                                             licenseKey.expires_at ? calculateDaysRemaining(licenseKey.expires_at) : 'Perpetual';
                                     }
+                                }
+
+                                // Add new fields from API data
+                                if (state.data?.meta) {
+                                    document.getElementById('productName').textContent = 
+                                        state.data.meta.product_name || 'N/A';
+                                    document.getElementById('customerName').textContent = 
+                                        state.data.meta.customer_name || 'N/A';
+                                    document.getElementById('customerEmail').textContent = 
+                                        state.data.meta.customer_email || 'N/A';
                                 }
 
                                 document.querySelectorAll('.feature-button.premium').forEach(btn => {
