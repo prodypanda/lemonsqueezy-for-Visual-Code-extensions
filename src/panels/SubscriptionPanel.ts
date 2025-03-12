@@ -109,7 +109,7 @@ export class SubscriptionPanel implements vscode.WebviewViewProvider {
                     color: var(--vscode-foreground);
                 }
                 .license-input { 
-                    width: 100%; 
+                    width: 300px; 
                     padding: 8px;
                     border: 1px solid var(--vscode-input-border);
                     background: var(--vscode-input-background);
@@ -917,6 +917,8 @@ export class SubscriptionPanel implements vscode.WebviewViewProvider {
                             } else {
                                 licenseInput.value = '';
                                 licenseInput.disabled = false;
+                                document.getElementById('statusBadge').innerHTML = 
+                                    '<span class="status-badge free">Free</span>';
                                 activateBtn.style.display = 'block';
                                 subscriptionInfo.style.display = 'none';
                                 licenseSection.style.display = 'block';
