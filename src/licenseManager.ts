@@ -146,6 +146,9 @@ export class LicenseManager {
      * Refreshes the entire license state including validation and stored data
      */
     public async refreshLicenseState(): Promise<void> {
+        // Add log for debugging
+        console.log('Refreshing license state...');
+
         const licenseKey = this.context.globalState.get('licenseKey');
         const instanceId = this.context.globalState.get('instanceId');
 
@@ -158,7 +161,7 @@ export class LicenseManager {
         }
 
         try {
-            // Perform validation with instance ID to check both license and instance status
+            // Validate license with better error handling
             const response = await axios.post(this.API.validate,
                 `license_key=${licenseKey}&instance_id=${instanceId}`,
                 {
@@ -168,6 +171,18 @@ export class LicenseManager {
                     }
                 }
             );
+
+            // Log the response for debugging
+            console.log('License validation response:', response.data);
+
+            // Check for expired license specifically
+            if (response.data.license_key?.status === 'expired') {
+                this.isLicensed = false;
+                this.apiData = response.data;
+                await this.deactivateLicenseState();
+                vscode.window.showWarningMessage('Your license has expired. Premium features have been disabled.');
+                return;
+            }
 
             const isValid = response.data.valid &&
                 response.data.meta.store_id === this.STORE_ID &&
@@ -198,16 +213,52 @@ export class LicenseManager {
                 const reason = !isValid ? 'Your license is no longer valid.' : 'This installation has been deactivated.';
                 vscode.window.showWarningMessage(`${reason} Premium features have been disabled.`);
             }
-        } catch (error) {
+        } catch (error: unknown) {
             console.error('License refresh error:', error);
-            // Keep existing state on error to allow offline usage
-            if (axios.isAxiosError(error) && error.response?.status === 404) {
-                // 404 means the license key doesn't exist anymore
-                await this.deactivateLicense();
-                vscode.window.showWarningMessage('Your license key is no longer valid. Premium features have been disabled.');
+
+            // Handle specific error cases
+            if (axios.isAxiosError(error)) {
+                if (error.response?.status === 400) {
+                    await this.deactivateLicenseState();
+                    vscode.window.showWarningMessage('Your license is no longer valid. Premium features have been disabled.');
+                    return;
+                }
+                if (error.response?.status === 404) {
+                    await this.deactivateLicenseState();
+                    vscode.window.showWarningMessage('License not found. Premium features have been disabled.');
+                    return;
+                }
+                if (error.response?.status === 429) {
+                    console.warn('Rate limit reached for license validation');
+                    return;
+                }
+
+                // Handle network errors
+                if (error.message?.includes('network')) {
+                    vscode.window.showWarningMessage('Unable to validate license due to network issues. Will try again later.');
+                    return;
+                }
             }
+
+            // Handle any other unknown errors
+            const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred';
+            console.error('Unexpected error during license validation:', errorMessage);
+            vscode.window.showErrorMessage(`License validation failed: ${errorMessage}`);
         }
 
+        this.updateStatusBarItem();
+        this._onDidChangeLicense.fire();
+    }
+
+    // Add helper method to deactivate license state
+    private async deactivateLicenseState(): Promise<void> {
+        this.isLicensed = false;
+        this.apiData = undefined;
+        await this.context.globalState.update('apiData', undefined);
+        await this.context.globalState.update('licenseKey', undefined);
+        await this.context.globalState.update('instanceId', undefined);
+        await this.context.globalState.update('lastValidated', undefined);
+        await this.context.globalState.update('validUntil', undefined);
         this.updateStatusBarItem();
         this._onDidChangeLicense.fire();
     }

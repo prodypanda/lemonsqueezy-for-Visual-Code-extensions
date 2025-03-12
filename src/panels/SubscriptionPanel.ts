@@ -840,7 +840,7 @@ export class SubscriptionPanel implements vscode.WebviewViewProvider {
                     if (!data?.license_key) return;
                     const { activation_limit, activation_usage } = data.license_key;
                     
-                    document.getElementById('activationCount').textContent = activation_usage || '0';
+                    document.getElementById('activationCount').textContent = activation_usage || '1';
                     document.getElementById('maxActivations').textContent = activation_limit || '∞';
                     document.getElementById('instanceId').textContent = data.instance?.id || 'N/A';
                     
