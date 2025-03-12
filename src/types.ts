@@ -79,6 +79,12 @@ export interface LemonSqueezyResponse {
     license_key?: {
         id: number;
         status: string;
+        key: string;
+        activation_limit: number;
+        activation_usage: number;
+        created_at: string;
+        expires_at: string | null;
+        test_mode?: boolean;
     };
 }
 
@@ -100,6 +106,7 @@ export interface LicenseState extends BaseResponse {
     retryCount: number;
     config: LicenseConfig;
     validUntil?: string;
+    data?: LemonSqueezyResponse;  // Add this line to include the API response data
 }
 
 // Add cache support

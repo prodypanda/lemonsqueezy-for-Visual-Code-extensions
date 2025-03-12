@@ -134,8 +134,19 @@ async function handleCommandWithRetry<T>(
  * 4. Set up trial system
  */
 export async function activate(context: vscode.ExtensionContext) {
-    //vscode.window.showInformationMessage('Current VSC language:', vscode.env.language);
     const licenseManager = LicenseManager.getInstance(context);
+
+    // Immediate validation and data refresh on startup
+    await licenseManager.refreshLicenseState();
+
+    // Add validation on window focus
+    context.subscriptions.push(
+        vscode.window.onDidChangeWindowState(async (e) => {
+            if (e.focused) {
+                await licenseManager.refreshLicenseState();
+            }
+        })
+    );
 
     // Register Subscription Panel
     const subscriptionProvider = new SubscriptionPanel(context.extensionUri, licenseManager);
