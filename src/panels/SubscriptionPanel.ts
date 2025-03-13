@@ -632,6 +632,22 @@ export class SubscriptionPanel implements vscode.WebviewViewProvider {
                     margin: 10px 0; /* Remove auto margin to align left */
                     display: block;
                 }
+
+                .connectivity-dot {
+                    display: inline-block;
+                    width: 8px;
+                    height: 8px;
+                    border-radius: 50%;
+                    margin-left: 5px;
+                }
+
+                .connectivity-dot.online {
+                    background-color: #4CAF50;  // Green dot for online
+                }
+
+                .connectivity-dot.offline {
+                    background-color: #f44336;  // Red dot for offline
+                }
             </style>
         </head>
         <body>
@@ -914,6 +930,15 @@ export class SubscriptionPanel implements vscode.WebviewViewProvider {
                                 document.querySelectorAll('.feature-button.premium').forEach(btn => {
                                     btn.disabled = false;
                                 });
+
+                                // Update status badge with connectivity status
+                                const statusBadge = document.getElementById('statusBadge');
+                                const { isOnline, tooltipText } = state.connectivityStatus;
+                                statusBadge.innerHTML = \`
+                                    <span class="status-badge premium">
+                                        License Active
+                                        <span class="connectivity-dot \${isOnline ? 'online' : 'offline'}" title="\${tooltipText}"></span>
+                                    </span>\`;
                             } else {
                                 licenseInput.value = '';
                                 licenseInput.disabled = false;
@@ -927,6 +952,15 @@ export class SubscriptionPanel implements vscode.WebviewViewProvider {
                                 document.querySelectorAll('.feature-button.premium').forEach(btn => {
                                     btn.disabled = true;
                                 });
+
+                                // Update status badge with connectivity status for free version
+                                const statusBadge = document.getElementById('statusBadge');
+                                const { isOnline, tooltipText } = state.connectivityStatus;
+                                statusBadge.innerHTML = \`
+                                    <span class="status-badge free">
+                                        Free
+                                        <span class="connectivity-dot \${isOnline ? 'online' : 'offline'}" title="\${tooltipText}"></span>
+                                    </span>\`;
                             }
                             break;
                             

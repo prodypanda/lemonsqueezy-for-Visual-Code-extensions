@@ -99,7 +99,11 @@ export class LicenseManager {
             licenseKey: null,
             instanceId: null,
             retryCount: 0,
-            config: this.DEFAULT_CONFIG
+            config: this.DEFAULT_CONFIG,
+            connectivityStatus: {
+                isOnline: true,
+                tooltipText: 'Online'
+            }
         }
     };
 
@@ -113,6 +117,8 @@ export class LicenseManager {
     private constructor(context: vscode.ExtensionContext) {
         this.context = context;
         this.loadConfig();
+        // Initialize offlineManager first
+        this.offlineModeManager = OfflineModeManager.getInstance(context);
 
         // Create status bar with highest priority
         this.statusBarItem = vscode.window.createStatusBarItem(
@@ -142,7 +148,6 @@ export class LicenseManager {
         this.startErrorCleanup();
         this.initializeCache();
         this.refreshLicenseState().catch(console.error);
-        this.offlineModeManager = OfflineModeManager.getInstance(context);
     }
 
     /**
@@ -164,14 +169,15 @@ export class LicenseManager {
         }
 
         try {
-            // Validate license with better error handling
+            // Try online validation
             const response = await axios.post(this.API.validate,
                 `license_key=${licenseKey}&instance_id=${instanceId}`,
                 {
                     headers: {
                         'Accept': 'application/json',
                         'Content-Type': 'application/x-www-form-urlencoded'
-                    }
+                    },
+                    timeout: 5000 // 5 second timeout
                 }
             );
 
@@ -219,8 +225,27 @@ export class LicenseManager {
         } catch (error: unknown) {
             console.error('License refresh error:', error);
 
-            // Handle specific error cases
+            // Handle network errors
             if (axios.isAxiosError(error)) {
+                if (error.code === 'ENOTFOUND' || error.code === 'ECONNREFUSED' || error.message.includes('network')) {
+                    console.log('Network error detected, checking offline cache...');
+                    // Check if offline mode is valid
+                    if (this.offlineModeManager.isEnabled() &&
+                        this.offlineModeManager.isOfflineValid(this.config)) {
+                        const cachedState = this.offlineModeManager.getCachedLicenseState();
+                        if (cachedState) {
+                            console.log('Using cached license state');
+                            this.isLicensed = cachedState.isLicensed;
+                            this.apiData = cachedState.data;
+                            this.updateStatusBarItem();
+                            return;
+                        }
+                    }
+
+                    // If no valid cache, show offline message
+                    vscode.window.showWarningMessage('Unable to validate license due to network issues. Will try again later.');
+                    return;
+                }
                 if (error.response?.status === 400) {
                     await this.deactivateLicenseState();
                     vscode.window.showWarningMessage('Your license is no longer valid. Premium features have been disabled.');
@@ -529,29 +554,35 @@ export class LicenseManager {
      * - Premium: Paid version with all features
      */
     public updateStatusBarItem(): void {
-        if (!this.statusBarItem) {
+        if (!this.statusBarItem || !this.offlineModeManager) {
             return;
         }
 
+        const offlineStatus = this.offlineModeManager.getConnectivityStatus();
+        const isOfflineDurationExceeded = this.offlineModeManager.isOfflineDurationExceeded();
+
         if (this.isLicensed) {
-            this.statusBarItem.text = "$(verified) Premium";
-            this.statusBarItem.backgroundColor = new vscode.ThemeColor('statusBarItem.errorBackground');
-            this.statusBarItem.tooltip = "Premium features activated - Click to deactivate license";
+            if (isOfflineDurationExceeded) {
+                this.statusBarItem.text = "$(warning) License Pending";
+                this.statusBarItem.backgroundColor = new vscode.ThemeColor('statusBarItem.warningBackground');
+                this.statusBarItem.tooltip = "Offline duration exceeded - Please reconnect to validate license";
+                this.statusBarItem.color = "#f9d849"; // Yellow warning color
+            } else {
+                this.statusBarItem.text = "$(verified) Premium";
+                this.statusBarItem.backgroundColor = new vscode.ThemeColor('statusBarItem.prominentBackground');
+                this.statusBarItem.tooltip = "Premium features activated - Click to deactivate license";
+                this.statusBarItem.color = "#1dc41d";
+            }
             this.statusBarItem.command = 'extension.deactivateLicense';
-            this.statusBarItem.backgroundColor = new vscode.ThemeColor('statusBarItem.prominentBackground');
-            this.statusBarItem.color = "#1dc41d";
         } else {
             this.statusBarItem.text = "$(star) Free";
-            this.statusBarItem.backgroundColor = undefined;
+            this.statusBarItem.backgroundColor = new vscode.ThemeColor('statusBarItem.errorBackground');
             this.statusBarItem.tooltip = "Free version - Click to activate premium features";
             this.statusBarItem.command = 'extension.activateLicense';
-            this.statusBarItem.backgroundColor = new vscode.ThemeColor('statusBarItem.errorBackground');
-            this.statusBarItem.color = "#3ba1eb"
+            this.statusBarItem.color = "#3ba1eb";
         }
 
-        // Emit license change event after updating status
         this._onDidChangeLicense.fire();
-
         this.ensureStatusBarVisibility();
     }
 
@@ -680,7 +711,15 @@ export class LicenseManager {
      * Checks if premium features are available
      * @returns Whether premium features can be accessed
      */
-    isFeatureAvailable(): boolean {
+    public isFeatureAvailable(): boolean {
+        if (!this.offlineModeManager) {
+            return this.isLicensed;
+        }
+
+        // Check if offline duration exceeded
+        if (this.offlineModeManager.isOfflineDurationExceeded()) {
+            return false;  // Disable features when offline too long
+        }
         return this.isLicensed;
     }
 
@@ -727,9 +766,13 @@ export class LicenseManager {
      * @returns Current license state
      */
     getLicenseState(): LicenseState {
+        const connectivityStatus = this.offlineModeManager?.getConnectivityStatus() || {
+            isOnline: true,
+            tooltipText: 'Online'
+        };
         return {
-            success: true,  // Add required BaseResponse property
-            message: 'License state retrieved successfully',  // Add required BaseResponse property
+            success: true,
+            message: 'License state retrieved successfully',
             isLicensed: this.isLicensed,
             licenseKey: this.context.globalState.get('licenseKey') || null,
             instanceId: this.context.globalState.get('instanceId') || null,
@@ -739,7 +782,8 @@ export class LicenseManager {
             retryCount: this.retryAttempts,
             config: this.config,
             validUntil: this.context.globalState.get('validUntil'),
-            data: this.apiData  // Include the API response data
+            data: this.apiData,
+            connectivityStatus
         };
     }
 

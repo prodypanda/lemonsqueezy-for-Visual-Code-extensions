@@ -31,7 +31,7 @@ export interface LicenseConfig {
     validateOnStartup: boolean;
     offlineMode: {
         enabled: boolean;
-        cacheDuration: number;  // hours
+        cacheDuration: number;  // Duration in minutes (changed from hours)
         maxRetries: number;
     };
     apiCache: {
@@ -107,6 +107,7 @@ export interface LicenseState extends BaseResponse {
     config: LicenseConfig;
     validUntil?: string;
     data?: LemonSqueezyResponse;  // Add this line to include the API response data
+    connectivityStatus: ConnectivityStatus;  // Add this line
 }
 
 // Add cache support
@@ -126,4 +127,9 @@ export interface OfflineMode {
     enabled: boolean;
     lastOnlineCheck: string;
     cachedLicenseState: LicenseState;
+}
+
+export interface ConnectivityStatus {
+    isOnline: boolean;
+    tooltipText: string;
 }
